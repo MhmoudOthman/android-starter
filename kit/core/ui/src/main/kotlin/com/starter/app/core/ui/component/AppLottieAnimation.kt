@@ -61,7 +61,7 @@ data class LottieTint(
  * classpath.
  *
  * [iterations] defaults to a single pass: these are one-shot confirmations, not decoration, and a
- * looping checkmark keeps announcing something the driver already acknowledged.
+ * looping checkmark keeps announcing something the user already acknowledged.
  *
  * `enableMergePaths` mirrors v1's `lottie_enableMergePathsForKitKatAndAbove` — the shipped
  * `done_animation` is authored with merge paths, and rendering it without them fills shapes that

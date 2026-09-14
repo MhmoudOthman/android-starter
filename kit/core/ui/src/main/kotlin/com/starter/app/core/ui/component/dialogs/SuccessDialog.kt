@@ -28,7 +28,7 @@ import com.starter.app.core.designsystem.R as DesignSystemR
 /**
  * The "it went through" dialog: v1's `done_animation` playing once above a centered message, and a
  * single acknowledging button. The sibling of [ErrorDialog] — same scaffold, same button row, and
- * the same rule that a driver is told what happened in the shape the outcome deserves.
+ * the same rule that a user is told what happened in the shape the outcome deserves.
  *
  * The animation stands in for [AppAlertDialog]'s title-panel icon rather than joining it: a
  * checkmark drawing itself and a static check beside the word "Success" say the same thing twice.
@@ -163,7 +163,7 @@ private fun ColumnScope.SuccessAnimation(
             .fillMaxWidth(fraction = 0.5f)
             .aspectRatio(1f),
         // 130 frames at 60fps — about 2.2s, where v1's asset ran 5.5s and needed the 2x push to
-        // stop the driver waiting on a checkmark. 1.5x lands near 1.5s and still lets the tick draw.
+        // stop the user waiting on a checkmark. 1.5x lands near 1.5s and still lets the tick draw.
         speed = 1.5f,
         tints = tints,
     )
@@ -204,7 +204,7 @@ internal fun haloKeyPath() = listOf("**", HALO_LAYER, "**")
 private fun PreviewSuccessDialogContent() {
     AppTheme {
         SuccessDialog(
-            message = "Orders assigned successfully",
+            message = "Saved successfully",
             positiveText = "OK",
             onPositiveClick = {},
             onDismissRequest = {}
@@ -218,7 +218,7 @@ private fun PreviewSuccessDialogContentTitled() {
     AppTheme {
         SuccessDialog(
             title = "Success",
-            message = "Orders assigned successfully",
+            message = "Saved successfully",
             positiveText = "OK",
             onPositiveClick = {},
             onDismissRequest = {}

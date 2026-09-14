@@ -24,16 +24,16 @@ object HttpClientFactory {
         // It used to be installed at `LogLevel.ALL` under `BuildConfig.DEBUG`, on the reasoning
         // that a release build logs nothing. That reasoning was too narrow twice over. A debug
         // build runs on real handsets against staging with real credentials, and `ALL` prints the
-        // request body (the driver's password on `login`, their live coordinates on
-        // `change-status-v2`), the response body (the auth token), and the `Authorization` header.
+        // request body (a password on `login`, a user's coordinates on a
+        // location update), the response body (the auth token), and the `Authorization` header.
         //
-        // And there is no lower level that is safe either: `scan-orders/{barcode}` puts the
-        // barcode in the *path*, so even `LogLevel.INFO` — method and URL only — leaks it.
+        // And there is no lower level that is safe either: an endpoint like `items/{code}` puts the
+        // identifier in the *path*, so even `LogLevel.INFO` — method and URL only — leaks it.
         // Redacting the header while keeping bodies would have missed the point entirely.
         //
         // What is left is `logApiCall` in `Ext.kt`: a status code and a duration, nothing more.
         install(HttpTimeout) {
-            requestTimeoutMillis = HttpTimeoutConfig.INFINITE_TIMEOUT_MS // مهم جداً للـ download
+            requestTimeoutMillis = HttpTimeoutConfig.INFINITE_TIMEOUT_MS // a request timeout caps TOTAL time and would kill a long download
             socketTimeoutMillis = 60_000
 
         }

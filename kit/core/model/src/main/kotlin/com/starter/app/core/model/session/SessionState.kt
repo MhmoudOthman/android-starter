@@ -4,11 +4,11 @@ package com.starter.app.core.model.session
  * What the app knows about the stored session — **three answers, not two**.
  *
  * The third one is the whole point. "Could not read the session" is not the same thing as "there is
- * no session", and collapsing them is how a driver gets thrown back to the login screen mid-run
+ * no session", and collapsing them is how a user gets thrown back to the login screen mid-run
  * because a disk read failed for a moment. So a failure surfaces as [Unavailable], and the shell
  * neither navigates nor clears anything on it.
  *
- * Note this is deliberately **not** derived from the driver's Room row. That row is data the
+ * Note this is deliberately **not** derived from the user's Room row. That row is data the
  * session happens to have written; it is not evidence a session exists, and reading it as such is
  * what let the shell decide the app was signed out while the splash was still working.
  */
@@ -17,7 +17,7 @@ sealed interface SessionState {
     /**
      * A token and the logged-in flag are both stored.
      *
-     * **[sessionId] is load-bearing, and not only for telling two drivers apart.** With a bare
+     * **[sessionId] is load-bearing, and not only for telling two users apart.** With a bare
      * `data object` here, a fast logout-then-login gives `Active` followed by `Active` — and
      * `distinctUntilChanged` on the flow swallows the second one entirely, so nothing downstream
      * ever learns the session changed. Carrying the id makes the two values unequal, which is what

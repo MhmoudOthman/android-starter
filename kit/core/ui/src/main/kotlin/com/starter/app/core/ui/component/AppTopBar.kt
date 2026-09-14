@@ -73,6 +73,6 @@ fun AppTopBar(
 @Composable
 private fun PreviewAppTopBar() {
     AppTheme {
-        AppTopBar(title = "GourmetGo", navigation = TopBarNavigation.Drawer(onClick = {}))
+        AppTopBar(title = "Starter App", navigation = TopBarNavigation.Drawer(onClick = {}))
     }
 }

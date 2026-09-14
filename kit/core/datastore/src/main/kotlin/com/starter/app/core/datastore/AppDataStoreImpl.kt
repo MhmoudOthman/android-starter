@@ -18,7 +18,7 @@ import java.io.IOException
  *
  * Without one, a `CorruptionException` is thrown on **every** read from then on, and no retry can
  * help — the app would be permanently unable to answer whether anyone is signed in. Rebuilding
- * costs the driver a sign-in, which is recoverable; the alternative is not.
+ * costs the user a sign-in, which is recoverable; the alternative is not.
  *
  * Note what this does **not** do: it is invoked only for a corrupt file, never for an ordinary
  * `IOException`. A momentary read failure therefore never wipes anything — which is the separation
@@ -42,22 +42,15 @@ class AppDataStoreImpl(private val dataStore: DataStore<Preferences>) : AppDataS
 
     /**
      * **No fallback on this one, or on [isLoggedIn].** Both feed `SessionGuard`, and an empty token
-     * read as "" would be indistinguishable from a signed-out driver — the exact conflation that
-     * turns a disk hiccup into a driver thrown off a run. The guard wants the `IOException` so it
-     * can skip the write and change nothing else.
+     * read as "" would be indistinguishable from a signed-out user — the exact conflation that
+     * turns a disk hiccup into a user thrown back to the login screen. The guard wants the
+     * `IOException` so it can skip the write and change nothing else.
      */
     override suspend fun getAuthToken(): String = dataStore.data
         .map { it[PreferencesKeys.AUTH_TOKEN] }.first().orEmpty()
 
     override suspend fun isLoggedIn(): Boolean = dataStore.data
         .map { it[PreferencesKeys.IS_LOGGED_IN] }.first() ?: false
-
-    override suspend fun getStatusLastSyncAt(): Long? =
-        dataStore.data.map { it[PreferencesKeys.STATUS_LAST_SYNC_AT] }.first()
-
-    override suspend fun saveStatusLastSyncAt(timestamp: Long) {
-        dataStore.edit { it[PreferencesKeys.STATUS_LAST_SYNC_AT] = timestamp }
-    }
 
     override suspend fun saveAuthToken(token: String) {
         dataStore.edit { it[PreferencesKeys.AUTH_TOKEN] = token }
@@ -82,9 +75,9 @@ class AppDataStoreImpl(private val dataStore: DataStore<Preferences>) : AppDataS
 
     /**
      * A fallback *is* right here, unlike on the session reads above: an unreadable language means
-     * "we do not know what they chose", which resolves to the same English default as never having
-     * chosen. Without it an `IOException` propagates out of `OrdersRepoImpl.currentLanguage()` and
-     * fails the whole orders request over the language its status names would have been in.
+     * "we do not know what they chose", which resolves to the same default as never having chosen.
+     * Without it an `IOException` would propagate out of any data-layer call that reads the
+     * language to localise a request, and fail that request over a preference.
      */
     override suspend fun getLanguage(): String? = dataStore.data
         .map { it[PreferencesKeys.LANGUAGE] }

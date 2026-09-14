@@ -1,6 +1,6 @@
 ---
 name: android-starter
-description: Scaffolds a new Android project from Mahmoud's starter kit (multi-module · Clean layers · MVI · Compose · Koin · Ktor · DataStore, with build-logic convention plugins) and makes the architecture blueprint the project's CLAUDE.md, or applies that same blueprint to an existing Android project being revamped. Use this whenever the user starts a new Android app, says "new project", "scaffold", "starter kit", "بروجيكت جديد", "ابدأ مشروع", asks to set up modules/architecture for an Android app, or wants an existing Android app restructured to the GourmetGo-style architecture — even if they never say "skill" or "kit". Do not use it for adding a feature inside a project that already carries the blueprint's CLAUDE.md; that file already says how.
+description: Scaffolds a new Android project from the bundled starter kit (multi-module · Clean layers · MVI · Compose · Koin · Ktor · DataStore, with build-logic convention plugins) and makes the architecture blueprint the project's CLAUDE.md, or applies that same blueprint to an existing Android project being revamped. Use this whenever the user starts a new Android app, says "new project", "scaffold", "starter kit", "بروجيكت جديد", "ابدأ مشروع", asks to set up modules/architecture for an Android app, or wants an existing Android app restructured to this blueprint's architecture — even if they never say "skill" or "kit". Do not use it for adding a feature inside a project that already carries the blueprint's CLAUDE.md; that file already says how.
 ---
 
 # Android starter
@@ -49,7 +49,7 @@ removes the kit's own tooling. Read its final summary rather than re-deriving it
 ./gradlew test assembleDebug
 ```
 
-Green means: the four convention plugins configured every module, the kit's 28 JVM tests passed
+Green means: the four convention plugins configured every module, the kit's 24 JVM tests passed
 (one is skipped on Windows by design), and `AppModulesTest` proved the Koin graph resolves. If the
 build fails on `SDK location not found`, the directory has no `local.properties` — write one with
 `sdk.dir=D:/Android/Sdk` (forward slashes; a Windows path with single backslashes is *unescaped*
@@ -62,8 +62,9 @@ needs `JAVA_HOME`, `ANDROID_HOME` and the proxy trust-store settings from the pr
 
 Report, in this order: what was scaffolded (package, name, path), the build/test result, and the
 things the user still has to do themselves — the three `BASE_URL`s if they were not given, the
-logos/launcher icons in `core/designsystem`, `signing.*` in `local.properties` before any release
-build, and cleartext hosts in `app/src/debug|staging/res/xml/network_security_config.xml` if
+brand (the kit ships the Material 3 baseline palette and a placeholder launcher icon; `kit/README.md`
+step 3 says exactly which files take the Theme Builder export), `signing.*` in `local.properties`
+before any release build, and cleartext hosts in `app/src/debug|staging/res/xml/network_security_config.xml` if
 staging is plain HTTP (never in `main`).
 
 Then stop. The project now carries `CLAUDE.md`; the next request ("build the login feature") is

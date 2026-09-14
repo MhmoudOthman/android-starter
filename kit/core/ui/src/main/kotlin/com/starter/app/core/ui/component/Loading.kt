@@ -4,10 +4,9 @@ package com.starter.app.core.ui.component
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.progressSemantics
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.ContainedLoadingIndicator
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -19,21 +18,22 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.starter.app.core.designsystem.dimen.sdp
 import com.starter.app.core.designsystem.previews.PreviewLightDarkDeviceSystemUi
 import com.starter.app.core.designsystem.theme.AppTheme
 import com.starter.app.core.ui.component.cards.AppElevatedCard
-import com.starter.app.core.designsystem.dimen.sdp
 
 /**
- * A non-dismissible full-screen loading dialog showing a looping illustration and an optional label.
- * Tint the card and text via [color]; the convenience wrappers below pick theme colors.
+ * The app's only *blocking* loading visual: a non-dismissible full-screen dialog holding a card
+ * with a Material loading indicator and an optional label. Reach for it when the user is waiting on
+ * the work and nothing else on screen is usable meanwhile — a submit, a status change. A refresh
+ * the user can keep scrolling behind belongs in the control itself (a button's `isLoading`, a
+ * pull-to-refresh hint), not here.
  *
- * **The animation is painted from [color] and [contentColor], not from its own palette.** Both
- * assets ship in colours of their own — the car in a flat `#005C99` blue, the bike in amber, pink
- * and mint — and this card is `secondary`, `tertiary` or `error` depending on which wrapper the
- * caller reached for, so nothing fixed reads correctly on all three. [LoadingArtDefaults.colors]
- * ramps the card's own content colour down to its container instead; pass [artColors] to override
- * the whole palette, or [art] to swap the illustration.
+ * [color] is the card; the indicator and text take [contentColor], so the three theme wrappers
+ * below stay readable on their own container. To swap the indicator for branded artwork, replace
+ * the [ContainedLoadingIndicator] with an [AppLottieAnimation] — that composable already tints a
+ * Lottie asset from theme colours, see [SuccessDialog] for the pattern.
  */
 @Composable
 fun LoadingOverlay(
@@ -41,43 +41,32 @@ fun LoadingOverlay(
     text: String? = null,
     color: Color = MaterialTheme.colorScheme.secondary,
     contentColor: Color = contentColorFor(color),
-    art: LoadingArt = LoadingArt.CAR,
-    artColors: LoadingArtColors = LoadingArtDefaults.colors(
-        content = contentColor,
-        container = color,
-    ),
 ) {
     Dialog(
-        onDismissRequest = {}, // تمنع القفل
+        onDismissRequest = {}, // nothing to dismiss to: the work behind it has to finish
         properties = DialogProperties(
             dismissOnBackPress = false,
             dismissOnClickOutside = false,
-            usePlatformDefaultWidth = false // fullscreen
-        )
+            usePlatformDefaultWidth = false,
+        ),
     ) {
-
         AppElevatedCard(containerColor = color, contentColor = contentColor) {
             Row(
-                modifier = modifier,
-                horizontalArrangement = Arrangement.spacedBy(4.sdp, Alignment.CenterHorizontally),
-                verticalAlignment = Alignment.CenterVertically
+                modifier = modifier.padding(8.sdp),
+                horizontalArrangement = Arrangement.spacedBy(8.sdp, Alignment.CenterHorizontally),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                LoadingAnimation(
-                    art = art,
-                    colors = artColors,
-                    modifier = Modifier
-                        .align(Alignment.CenterVertically)
-                        .progressSemantics()
-                        .heightIn(max = 48.sdp)
-                        .aspectRatio(1f),
+                ContainedLoadingIndicator(
+                    modifier = Modifier.size(36.sdp),
+                    containerColor = contentColor.copy(alpha = 0.15f),
+                    indicatorColor = contentColor,
                 )
                 text?.let {
                     Text(
-                        modifier = Modifier.padding(end = 8.sdp),
+                        modifier = Modifier.padding(end = 4.sdp),
                         text = it,
-//                        color = color,
                         fontWeight = FontWeight.Bold,
-                        style = MaterialTheme.typography.bodyLarge
+                        style = MaterialTheme.typography.bodyLarge,
                     )
                 }
             }
@@ -86,58 +75,21 @@ fun LoadingOverlay(
 }
 
 @Composable
-fun SecondaryLoadingOverlay(text: String? = null, art: LoadingArt = LoadingArt.CAR) =
-    LoadingOverlay(text = text, color = MaterialTheme.colorScheme.secondary, art = art)
+fun SecondaryLoadingOverlay(text: String? = null) =
+    LoadingOverlay(text = text, color = MaterialTheme.colorScheme.secondary)
 
 @Composable
-fun TertiaryLoadingOverlay(text: String? = null, art: LoadingArt = LoadingArt.CAR) =
-    LoadingOverlay(text = text, color = MaterialTheme.colorScheme.tertiaryContainer, art = art)
+fun TertiaryLoadingOverlay(text: String? = null) =
+    LoadingOverlay(text = text, color = MaterialTheme.colorScheme.tertiaryContainer)
 
 @Composable
-fun RedLoadingOverlay(text: String? = null, art: LoadingArt = LoadingArt.CAR) =
-    LoadingOverlay(text = text, color = MaterialTheme.colorScheme.error, art = art)
+fun RedLoadingOverlay(text: String? = null) =
+    LoadingOverlay(text = text, color = MaterialTheme.colorScheme.error)
 
 @PreviewLightDarkDeviceSystemUi
 @Composable
 private fun PreviewLoadingOverlay() {
     AppTheme {
         LoadingOverlay(text = "Loading")
-    }
-}
-
-/**
- * The animation on its own, on each of the three cards it can land on. A [Dialog] draws in its own
- * window, which Layoutlib cannot render, so the overlay previews above come up blank in the IDE —
- * this is where the tints are actually eyeballed.
- */
-@PreviewLightDarkDeviceSystemUi
-@Composable
-private fun PreviewLoadingArt() {
-    AppTheme {
-        Row(horizontalArrangement = Arrangement.spacedBy(4.sdp)) {
-            listOf(
-                MaterialTheme.colorScheme.secondary,
-                MaterialTheme.colorScheme.tertiary,
-                MaterialTheme.colorScheme.error,
-            ).forEach { container ->
-                LoadingArt.entries.forEach { art ->
-                    AppElevatedCard(
-                        containerColor = container,
-                        contentColor = contentColorFor(container),
-                    ) {
-                        LoadingAnimation(
-                            art = art,
-                            colors = LoadingArtDefaults.colors(
-                                content = contentColorFor(container),
-                                container = container,
-                            ),
-                            modifier = Modifier
-                                .heightIn(max = 48.sdp)
-                                .aspectRatio(1f),
-                        )
-                    }
-                }
-            }
-        }
     }
 }

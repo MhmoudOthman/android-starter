@@ -5,7 +5,7 @@
 > *"Build/refactor the project following this blueprint exactly. Ask before deviating."*
 > Everything below is a **rule** unless marked *(reference)*. `<app>` is the app's short name,
 > `com.company.app` its package root, and `<feature>` any vertical (orders, auth, profile…).
-> This blueprint was extracted from a shipped production app (GourmetGo v2) and then tightened
+> This blueprint was extracted from a shipped production app and then tightened
 > in five places that app paid for (convention plugins, API placement, feature strings, one-shot
 > results, DI verification). A compilable starter kit that already follows it exists; if you have
 > it, start from the kit instead of an empty project.
@@ -336,7 +336,7 @@ val networkModule = module { single { HttpClientFactory.create() }; single<Conne
 - **Never `catch { emit(default) }` on a read failure.** Retry silently (no emission) for preferences; emit an explicit `Unavailable` state for anything the UI must react to; let `IOException` propagate for auth reads — an unreadable token is not a signed-out user.
 
 ### 4.6 Design system — `:core:designsystem`
-- `AppTheme` (Material 3, light/dark, contrast variants) + `ExtendedColorScheme` via a `CompositionLocal` for roles Material lacks (`warning`, `info`, `errorBg`). A family added there is filled in for every scheme — a miss is a compile error, not a black.
+- `AppTheme` (Material 3, light/dark — the M3 baseline palette until a brand replaces `Color.kt` with a Material Theme Builder export) + `ExtendedColorScheme` via a `CompositionLocal` for roles Material lacks (`warning`, `info`, `errorBg`). A family added there is filled in for every scheme — a miss is a compile error, not a black.
 - **Only the strings the shared `core:ui` components reference live here** (OK, back, close, retry, pull-to-refresh…), plus `app_name`. **A feature's strings go in its presentation module's `res/values/strings.xml`** (and `values-<lang>/`), so the feature is self-contained and a copy change does not recompile the app. Reference shared ones as `DesignSystemR.string.x`, the module's own as its `R.string.x`.
 - Prefer vector drawables over icon packs; a pack `api`'d here reaches every module and only shows its cost in the release APK.
 - `dimen/Sdp.kt`: `Int.sdp` / `Int.ssp` resolving Intuit's `_Nsdp` tables with the resource **id cached per process** in an `IntArray`. Keep `res/raw/keep.xml` so the resource shrinker does not strip them (failure is silent: everything renders as plain dp).

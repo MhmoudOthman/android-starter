@@ -18,7 +18,7 @@ fun String.toSlug(): String =
  *
  * Both sides of every version comparison go through this, and both are checked with `!=` rather
  * than "newer than" — so a suffix that leaks into the comparison is not a stray prompt: on the
- * splash the update dialog has no dismiss, making it a screen the driver cannot get past. Keep any
+ * splash the update dialog has no dismiss, making it a screen the user cannot get past. Keep any
  * new suffix behind the first `-`.
  *
  * It lives here rather than beside either caller because there are now two — the splash and the

@@ -57,10 +57,10 @@ import com.starter.app.core.designsystem.R as DesignSystemR
  * soon as the finger lifts, and the overlay takes it from there.
  *
  * The [content] must own a scrollable that fills the box — a `LazyColumn` with `fillMaxSize()` on
- * the orders list, a `Column` with `verticalScroll` on order details — **even when it is empty**:
+ * a list screen, a `Column` with `verticalScroll` on a details screen — **even when it is empty**:
  * the gesture rides that child's nested-scroll connection, so the scrollable still has to be there
  * for the pull to work on a list with no rows or a screen whose load failed. That last case is the
- * one worth protecting, since it is exactly where a driver would pull to retry.
+ * one worth protecting, since it is exactly where a user would pull to retry.
  */
 @Composable
 fun AppPullToRefreshBox(

@@ -31,7 +31,7 @@ import java.io.File
  *
  * What is pinned here is the decision that is *ours* rather than DataStore's: **a store with
  * nothing in it reads as a confirmed [SessionState.SignedOut], never as
- * [SessionState.Unavailable]**. That is the difference between the app routing a driver to sign in
+ * [SessionState.Unavailable]**. That is the difference between the app routing a user to sign in
  * again and it freezing while it waits for a session that will never appear — and it is exactly the
  * state the corruption handler leaves behind, since `ReplaceFileCorruptionHandler` rebuilds the
  * file as `emptyPreferences()`.
@@ -119,7 +119,7 @@ class AppDataStoreImplTest {
      *
      * Without the handler a `CorruptionException` is thrown on every read from then on and no retry
      * can help, so the app could never again answer whether anyone is signed in. Rebuilding costs
-     * the driver a sign-in, which is recoverable; the alternative is not.
+     * the user a sign-in, which is recoverable; the alternative is not.
      *
      * **Skipped on Windows, and it genuinely runs on CI.** DataStore commits by renaming a `.tmp`
      * over the target, and Windows `renameTo` fails when the destination exists — which the

@@ -24,8 +24,8 @@ data class SessionSnapshot(val id: Long, val token: String)
  *
  * Everything that reads or ends a session goes through here, for one reason: a request and the
  * write it produces are separated by a full network round trip, and the session can end — or be
- * replaced by another driver's — in the middle of it. Without a guard, a reply for account A lands
- * on account B's row, and a `GET profile` that comes back after a logout writes the driver back
+ * replaced by another user's — in the middle of it. Without a guard, a reply for account A lands
+ * on account B's row, and a `GET profile` that comes back after a logout writes the user back
  * into a database that was just cleared.
  *
  * Three rules hold everywhere in this class, and each of them costs something when broken:

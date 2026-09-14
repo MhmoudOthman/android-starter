@@ -27,7 +27,7 @@ private const val MAX_BACKOFF_MS = 30_000L
  * The distinction is the whole point. `catch { emit(default) }` looks like the obvious answer and is
  * wrong twice over: it ends the flow, so the collector is stuck on the fallback for the life of the
  * subscription even after the store recovers — and it makes a momentary disk failure
- * indistinguishable from a preference the driver actually chose. `retryWhen` re-collects upstream,
+ * indistinguishable from a preference the user actually chose. `retryWhen` re-collects upstream,
  * so a recovered read reaches the collector on its own.
  *
  * Callers that need to *say* something while the store is unreadable — the session does, since

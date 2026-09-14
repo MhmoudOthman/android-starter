@@ -3,22 +3,19 @@ package com.starter.app.core.datastore
 import kotlinx.coroutines.flow.Flow
 
 /**
- * The auth token and login state, the status list's last sync stamp, and the two settings the
- * driver picks for themselves — language and theme.
+ * The auth token and login state, plus the two settings the user picks for themselves — language
+ * and theme. Feature-specific preferences (a sync stamp, a last-opened id) belong in the feature's
+ * own data module, not here.
  *
  * An interface over [AppDataStoreImpl] rather than the class itself: the implementation wraps a
- * `Context`, and anything holding one — `SplashViewModel`, the repos — could not be unit tested
- * without dragging Robolectric in behind it.
+ * `DataStore`, and anything holding one — a ViewModel, a repo — could not be unit tested without
+ * dragging Robolectric in behind it.
  */
 interface AppDataStore {
 
     suspend fun getAuthToken(): String
 
     suspend fun isLoggedIn(): Boolean
-
-    suspend fun getStatusLastSyncAt(): Long?
-
-    suspend fun saveStatusLastSyncAt(timestamp: Long)
 
     suspend fun saveAuthToken(token: String)
 
@@ -37,9 +34,8 @@ interface AppDataStore {
     fun observeHasSession(): Flow<Boolean>
 
     /**
-     * The stored language choice, or `null` while the driver has never picked one. Kept as the raw
-     * tag rather than a resolved locale: "system" has to stay "system", so a driver who never chose
-     * follows the handset when its language changes.
+     * The stored language choice, or `null` while the user has never picked one. Kept as the raw
+     * tag rather than a resolved locale, so the domain decides what an unset value means.
      */
     suspend fun getLanguage(): String?
 
@@ -47,7 +43,7 @@ interface AppDataStore {
 
     suspend fun saveLanguage(language: String)
 
-    /** The stored theme choice, or `null` while the driver has never picked one. */
+    /** The stored theme choice, or `null` while the user has never picked one. */
     fun observeThemeMode(): Flow<String?>
 
     suspend fun saveThemeMode(mode: String)

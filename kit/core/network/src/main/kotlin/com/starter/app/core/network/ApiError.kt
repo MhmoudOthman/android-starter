@@ -10,7 +10,7 @@ import kotlinx.serialization.Serializable
  * A failed response's body, read for its message and nothing else.
  *
  * Deliberately *not* [ApiResponse]: on an error the backend fills `data` with a different shape from
- * the one the call asked for — `GET scan-orders/{barcode}` answers `{"data": 3}` on a hit and
+ * the one the call asked for — `GET items/{code}` might answer `{"data": 3}` on a hit and
  * `{"data": false, "error": "Order Not Found"}` on a miss — so parsing a failure through the success
  * envelope cannot work, and the exception it raises is worse than useless: it is swallowed by the
  * surrounding `catch` and re-emitted as [AppCodes.UNDEFINED], erasing the very status code the

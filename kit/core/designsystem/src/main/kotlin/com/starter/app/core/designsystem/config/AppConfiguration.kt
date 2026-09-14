@@ -17,7 +17,7 @@ const val LANGUAGE_ENGLISH = "en"
 const val LANGUAGE_ARABIC = "ar"
 
 /**
- * Runs [content] in the driver's chosen language **and** night mode.
+ * Runs [content] in the user's chosen language **and** night mode.
  *
  * The two travel together because they are one mechanism: a `Configuration` override on a context
  * wrapper. Neither goes through `AppCompatDelegate` — the app hosts its UI in a plain
@@ -31,7 +31,7 @@ const val LANGUAGE_ARABIC = "ar"
  * still follows the device locale, so Arabic would render left-to-right without this.
  *
  * **Night mode.** [darkTheme] is already the flag [com.starter.app.core.designsystem.theme.AppTheme]
- * picks its `ColorScheme` from, so everything Compose draws follows the driver's choice on its own.
+ * picks its `ColorScheme` from, so everything Compose draws follows the user's choice on its own.
  * What does *not* is anything the **resource system** resolves: a `-night` qualifier is matched
  * against the configuration, and the activity's configuration carries the *handset's* night mode.
  * The two logo vectors are the visible case — they fill from `@color/md_theme_onSurface` and
@@ -51,7 +51,7 @@ const val LANGUAGE_ARABIC = "ar"
  * chain intact while `applyOverrideConfiguration` redirects the resources.
  *
  * Three things stay outside its reach, all deliberate: anything drawn by another activity (zxing's
- * scanner ships its own UI), anything read off `Locale.getDefault()`, which is untouched, and the
+ * a third-party activity ships its own UI), anything read off `Locale.getDefault()`, which is untouched, and the
  * window decor itself — that is styled from XML at activity creation and is repainted separately by
  * `MainActivity.SystemBars`. The data layer therefore reads the *stored* language rather than the
  * process locale — see `OrdersRepoImpl.currentLanguage()` — and every formatter in `:core:common`

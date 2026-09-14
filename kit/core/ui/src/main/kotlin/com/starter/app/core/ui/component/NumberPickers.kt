@@ -58,14 +58,14 @@ fun NumberPicker(
     // The press comes from each button's own interaction stream. A `pointerInput` layered over the
     // button competes with its internal `clickable` for the same events and loses — that is what
     // kept hold-to-repeat dead. This is the same press the ripple is drawn from, so it cannot
-    // disagree with what the driver sees.
+    // disagree with what the user sees.
     val incInteraction = remember { MutableInteractionSource() }
     val decInteraction = remember { MutableInteractionSource() }
     val incPressed by incInteraction.collectIsPressedAsState()
     val decPressed by decInteraction.collectIsPressedAsState()
 
     // True once a hold has actually stepped the value. The button's own `onClick` still fires when
-    // the finger comes up, and without this a hold would land one past where the driver let go.
+    // the finger comes up, and without this a hold would land one past where the user let go.
     var repeated by remember { mutableStateOf(false) }
 
     // The repeat loops outlive the recompositions their own steps cause, and the effects are keyed
@@ -142,7 +142,7 @@ fun NumberPicker(
             leadingIcon = {
                 FilledIconButtonBase(
                     // Skipped when the hold already stepped the value — the release would otherwise
-                    // add one more on top of where the driver stopped.
+                    // add one more on top of where the user stopped.
                     onClick = {
                         if (!repeated && value < maxValue) {
                             onValueChange((value + 1).coerceIn(minValue, maxValue))

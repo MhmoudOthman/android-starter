@@ -24,8 +24,8 @@ import java.io.IOException
  * app reads "is anyone signed in" from.
  *
  * Everything here is about a window rather than a value: between a request going out and its answer
- * being written, the driver can sign out or somebody else can sign in. The failures this prevents
- * are all quiet ones — a driver's row restored after a logout, one account's data written over
+ * being written, the user can sign out or somebody else can sign in. The failures this prevents
+ * are all quiet ones — a user's row restored after a logout, one account's data written over
  * another's, one account's `401` shown to another — so none of them would surface without tests.
  */
 class SessionGuardTest {
@@ -156,7 +156,7 @@ class SessionGuardTest {
      *
      * The store can coalesce a logout and the login after it into a single emission, so what
      * arrives is `Active` followed by `Active`. With a bare `data object` those two are equal and
-     * `distinctUntilChanged` drops the second — the app would never learn the driver had changed.
+     * `distinctUntilChanged` drops the second — the app would never learn the user had changed.
      * The id is what makes them different values.
      */
     @Test
@@ -182,7 +182,7 @@ class SessionGuardTest {
      * Both of the obvious alternatives are wrong. A terminal `catch` would leave the collector on a
      * stale answer for the life of the subscription, with no way back once the store recovered; and
      * emitting `SignedOut` would make a momentary disk error indistinguishable from a logout, which
-     * is a driver thrown off a run for nothing.
+     * is a user thrown off a run for nothing.
      */
     @Test
     fun `an unreadable store reports unavailable and then recovers on its own`() = runTest {
@@ -298,8 +298,6 @@ private class FakeStore : AppDataStore {
         revisions.collect { emit(loggedIn && token.isNotBlank()) }
     }
 
-    override suspend fun getStatusLastSyncAt(): Long? = null
-    override suspend fun saveStatusLastSyncAt(timestamp: Long) = Unit
     override suspend fun saveAuthToken(token: String) = Unit
     override suspend fun clearAuthToken() = Unit
     override suspend fun setLoggedIn(loggedIn: Boolean) = Unit

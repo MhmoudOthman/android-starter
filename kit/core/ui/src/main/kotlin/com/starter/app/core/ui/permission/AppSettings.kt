@@ -12,13 +12,13 @@ import androidx.compose.ui.platform.LocalContext
  * Opens this app's own entry in system settings — the page with the Permissions list on it.
  *
  * It exists for one message: **"this needs precise location"**. That refusal is unlike every other
- * one in the app, because the driver cannot act on it from inside the app at all. Re-requesting the
+ * one in the app, because the user cannot act on it from inside the app at all. Re-requesting the
  * permission does nothing once location has already been granted as *approximate* — the system does
- * not offer the precision toggle a second time — so a dialog with only an OK on it tells the driver
+ * not offer the precision toggle a second time — so a dialog with only an OK on it tells the user
  * they are stuck without telling them where to go.
  *
  * Deliberately just a navigation. Granting the permission performs no write and resumes nothing:
- * the driver comes back and taps the control again, which is what keeps a settings round trip from
+ * the user comes back and taps the control again, which is what keeps a settings round trip from
  * silently changing an order's status or a duty state behind them.
  *
  * `ACTION_APPLICATION_DETAILS_SETTINGS` is present on every handset this fleet runs, but a missing
