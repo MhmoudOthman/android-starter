@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Resource-shrinker keeps for the sdp/ssp dimension tables.
+
+  Nothing references these by id. `:core:designsystem`'s `dimen/Sdp.kt` builds the resource *name*
+  at runtime — "_8sdp" — and hands it to `Resources.getIdentifier`, so the shrinker sees no
+  reference to any of the ~660 dimens and strips the lot. Sdp.kt caches the resolved id per process,
+  but that is a speed fix and changes nothing here: the lookup is still by name, and a name is not
+  something the shrinker can follow.
+
+  It does not crash when that happens, which is the dangerous part: `Int.sdp` falls back to plain
+  `dp` on a zero id, so the app keeps running and quietly renders every dimension as raw dp with no
+  screen scaling at all. Correct on one handset, wrong on every other.
+
+  Because the failure reports itself in no other way, the check lives in CI: `ci.yml` counts the
+  `_Nsdp` dimensions in the built release APK with `aapt2 dump resources` and fails below 600. Only
+  the APK can answer that question — the app launching proves nothing.
+
+  This stays for as long as sizes are resolved by name. See the shrinking section in CLAUDE.md.
+-->
+<resources
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:keep="@dimen/_*sdp,@dimen/_*ssp" />

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Staging-build override of app/src/main/res/xml/network_security_config.xml. Same content as the
+  debug copy: the staging build type is a release build pointed at the staging server, so it needs
+  the same cleartext exemption the debug build has - and main must still never carry it.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false" />
+    <!--
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="false">192.168.0.10</domain>
+    </domain-config>
+    -->
+</network-security-config>

@@ -1,0 +1,15 @@
+*.iml
+.gradle
+# Kotlin compiler daemon caches (errors/, sessions/)
+.kotlin/
+/local.properties
+# IDE settings — machine-specific, not shared
+/.idea/
+.DS_Store
+# Gradle build outputs — every module, at any depth
+/build
+**/build/
+/captures
+.externalNativeBuild
+.cxx
+local.properties

@@ -1,0 +1,11 @@
+# Outputs of building the kit in place (kit/ is itself a Gradle project).
+kit/build/
+kit/**/build/
+kit/.gradle/
+kit/.kotlin/
+kit/build-logic/build/
+kit/build-logic/.gradle/
+kit/local.properties
+kit/.idea/
+*.iml
+.DS_Store

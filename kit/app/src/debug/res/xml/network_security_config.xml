@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Debug-only override of app/src/main/res/xml/network_security_config.xml. This is the one place a
+  cleartext (HTTP) staging host may be allowed - it is never merged into a release APK.
+  Put the staging host/IP in the <domain> entry if staging is plain HTTP.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false" />
+    <!--
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="false">192.168.0.10</domain>
+    </domain-config>
+    -->
+</network-security-config>

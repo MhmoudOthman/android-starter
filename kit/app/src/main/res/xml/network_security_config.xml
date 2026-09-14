@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The release configuration. Production over HTTPS needs no entry here at all; add a
+  <domain-config cleartextTrafficPermitted="true"> ONLY for a production host that is genuinely
+  HTTP. A staging host must NEVER be added to this file — it lives in the debug/staging source
+  sets, which override this one per variant.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false" />
+</network-security-config>

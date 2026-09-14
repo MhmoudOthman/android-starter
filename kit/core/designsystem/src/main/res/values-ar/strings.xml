@@ -1,0 +1,11 @@
+<resources>
+    <string name="back">رجوع</string>
+    <string name="close">غلق</string>
+    <string name="enable">تمكين</string>
+    <string name="pull_to_refresh">اسحب للتحديث</string>
+    <string name="release_to_refresh">أفلت للتحديث</string>
+    <string name="active">نشط</string>
+    <string name="history">السجل</string>
+    <string name="enable_gps">تمكين GPS</string>
+    <string name="permission_rationale_location">يلزم تمكين الموقع (GPS) حتى يتمكن التطبيق من قراءة موقعك الحالي.</string>
+</resources>

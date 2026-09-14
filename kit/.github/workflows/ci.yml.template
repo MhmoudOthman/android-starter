@@ -1,0 +1,66 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+
+# A newer push to the same branch makes the running check obsolete. Never cancel on master itself.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/master' }}
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - uses: gradle/actions/setup-gradle@v5
+
+      # Robolectric fetches the platform jar it emulates at test time into ~/.m2, which
+      # setup-gradle does not cache. Keyed on the version and the pinned SDK.
+      - name: Cache Robolectric platform jars
+        uses: actions/cache@v5
+        with:
+          path: ~/.m2/repository/org/robolectric
+          key: robolectric-${{ hashFiles('gradle/libs.versions.toml', 'core/testing/src/main/resources/robolectric.properties') }}
+
+      # Committed from Windows, so the wrapper carries no exec bit.
+      - run: chmod +x ./gradlew
+
+      # Separate steps so the failing step names the problem in the run list.
+      - name: Unit tests
+        run: ./gradlew test
+
+      - name: Debug build
+        run: ./gradlew assembleDebug
+
+      # Nothing above touches R8 (unit tests are generated for the debug variant only). Once the
+      # repo has signing secrets, add: restore the keystore from SIGNING_KEYSTORE_BASE64 into
+      # $RUNNER_TEMP, export SIGNING_STORE_FILE / SIGNING_STORE_PASSWORD / SIGNING_KEY_ALIAS /
+      # SIGNING_KEY_PASSWORD, then run `./gradlew :app:assembleRelease` and assert on the APK
+      # (e.g. count the kept sdp dimens with `aapt2 dump resources`, fail below 600).
+
+      - name: Lint
+        run: ./gradlew lint
+
+      - name: Upload reports
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: reports
+          path: |
+            **/build/reports/tests/**
+            **/build/reports/lint-results-*.html
+          retention-days: 7
+          if-no-files-found: ignore
