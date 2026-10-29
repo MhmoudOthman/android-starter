@@ -338,7 +338,7 @@ val networkModule = module { single { HttpClientFactory.create() }; single<Conne
 ### 4.6 Design system — `:core:designsystem`
 - `AppTheme` (Material 3, light/dark — the M3 baseline palette until a brand replaces `Color.kt` with a Material Theme Builder export) + `ExtendedColorScheme` via a `CompositionLocal` for roles Material lacks (`warning`, `info`, `errorBg`). A family added there is filled in for every scheme — a miss is a compile error, not a black.
 - **Only the strings the shared `core:ui` components reference live here** (OK, back, close, retry, pull-to-refresh…), plus `app_name`. **A feature's strings go in its presentation module's `res/values/strings.xml`** (and `values-<lang>/`), so the feature is self-contained and a copy change does not recompile the app. Reference shared ones as `DesignSystemR.string.x`, the module's own as its `R.string.x`.
-- Prefer vector drawables over icon packs; a pack `api`'d here reaches every module and only shows its cost in the release APK.
+- Icons come from the packs `api`'d here: Material Icons (core + extended) and Composables Material Symbols Rounded (outlined + filled). Add a vector drawable for anything they lack rather than another pack — a pack `api`'d here reaches every module and only shows its cost in the release APK.
 - `dimen/Sdp.kt`: `Int.sdp` / `Int.ssp` resolving Intuit's `_Nsdp` tables with the resource **id cached per process** in an `IntArray`. Keep `res/raw/keep.xml` so the resource shrinker does not strip them (failure is silent: everything renders as plain dp).
 
 ### 4.7 MVI base — `:core:ui`

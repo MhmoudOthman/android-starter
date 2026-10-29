@@ -17,8 +17,9 @@ dependencies {
     api(libs.ssp)
     api(libs.sdp)
     api(libs.compose.material.icons.core)
-    // The only icon pack. R8 keeps the unused ~2000 out of the APK; prefer a vector drawable over
-    // adding a second pack here, since anything api'd here reaches every module.
+    // R8 keeps the unused icons out of the APK; anything api'd here reaches every module.
     api(libs.compose.material.icons.extended)
+    api(libs.icons.material.symbols.rounded)
+    api(libs.icons.material.symbols.rounded.filled)
     implementation(libs.compose.ui.graphics)
 }

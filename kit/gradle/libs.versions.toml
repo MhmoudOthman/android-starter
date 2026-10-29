@@ -9,6 +9,7 @@ activityCompose = "1.13.0"
 lifecycleViewmodel = "2.11.0"
 # Compose
 composeBom = "2026.06.01"
+composablesIcons = "2.2.1"
 # Navigation
 navigationCompose = "2.9.8"
 # Koin
@@ -63,6 +64,8 @@ compose-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4
 compose-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-test-manifest" }
 compose-material-icons-core = { group = "androidx.compose.material", name = "material-icons-core" }
 compose-material-icons-extended = { group = "androidx.compose.material", name = "material-icons-extended" }
+icons-material-symbols-rounded = { group = "com.composables", name = "icons-material-symbols-rounded-cmp", version.ref = "composablesIcons" }
+icons-material-symbols-rounded-filled = { group = "com.composables", name = "icons-material-symbols-rounded-filled-cmp", version.ref = "composablesIcons" }
 # Navigation
 navigation-compose = { group = "androidx.navigation", name = "navigation-compose", version.ref = "navigationCompose" }
 # Koin
