@@ -8,4 +8,5 @@
     <string name="history">السجل</string>
     <string name="enable_gps">تمكين GPS</string>
     <string name="permission_rationale_location">يلزم تمكين الموقع (GPS) حتى يتمكن التطبيق من قراءة موقعك الحالي.</string>
+    <string name="invalid_input">إدخال غير صالح</string>
 </resources>

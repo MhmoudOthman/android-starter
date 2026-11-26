@@ -85,9 +85,9 @@ internal fun IconButtonContent(
 @Composable
 fun FilledIconButtonBase(
     icon: @Composable (modifier: Modifier) -> Unit,
+    modifier: Modifier = Modifier,
     containerColor: Color = LocalContentColor.current,
     contentColor: Color = contentColorFor(containerColor),
-    modifier: Modifier = Modifier,
     disabledContainerAlpha: Float = 0.2f,
     disabledContentAlpha: Float = 0.5f,
     shape: Shape = CircleShape,
@@ -205,9 +205,9 @@ fun FilledRedIconButton(
 @Composable
 fun OutlinedIconButtonBase(
     icon: @Composable (modifier: Modifier) -> Unit,
+    modifier: Modifier = Modifier,
     contentColor: Color = LocalContentColor.current,
     loadingIndicatorColor: Color = LocalContentColor.current,
-    modifier: Modifier = Modifier,
     disabledAlpha: Float = 0.2f,
     shape: Shape = CircleShape,
     enabled: Boolean = true,
@@ -330,9 +330,9 @@ fun OutlinedRedIconButton(
 @Composable
 fun IconButtonBase(
     icon: @Composable (modifier: Modifier) -> Unit,
+    modifier: Modifier = Modifier,
     contentColor: Color = LocalContentColor.current,
     loadingIndicatorColor: Color = LocalContentColor.current,
-    modifier: Modifier = Modifier,
     disabledAlpha: Float = 0.2f,
     enabled: Boolean = true,
     isLoading: Boolean = false,

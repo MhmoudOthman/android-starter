@@ -18,7 +18,9 @@ class AndroidLibraryConventionPlugin : Plugin<Project> {
         pluginManager.apply("com.android.library")
 
         extensions.configure<LibraryExtension> {
-            compileSdk = COMPILE_SDK
+            compileSdk {
+                version = release(COMPILE_SDK) { minorApiLevel = COMPILE_SDK_MINOR }
+            }
             defaultConfig {
                 minSdk = MIN_SDK
                 buildConfigField("String", "APPLICATION_ID", appId.quoted())

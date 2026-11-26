@@ -17,4 +17,5 @@ val appModules: List<Module> = listOf(
     // domainCommonModule, dataCommonModule,
     // domainAuthModule, dataAuthModule, presentationLoginModule,
     // presentationShellModule,
+    appModule,
 )

@@ -41,9 +41,9 @@ import com.starter.app.core.designsystem.R as DesignSystemR
 @Composable
 fun SuccessDialog(
     message: String,
+    modifier: Modifier = Modifier,
     messageFontSize: TextUnit = TextUnit.Unspecified,
     onDismissRequest: () -> Unit,
-    modifier: Modifier = Modifier,
     title: String? = null,
     positiveText: String? = null,
     onPositiveClick: (() -> Unit)? = null,
@@ -64,7 +64,7 @@ fun SuccessDialog(
     ) {
         SuccessDialogContent(
             message = message,
-            messageFontSize=messageFontSize,
+            messageFontSize = messageFontSize,
             title = title,
             positiveText = positiveText,
             onPositiveClick = onPositiveClick,
@@ -79,6 +79,7 @@ fun SuccessDialog(
 @Composable
 private fun SuccessDialogContent(
     message: String,
+    modifier: Modifier = Modifier,
     messageFontSize: TextUnit = TextUnit.Unspecified,
     title: String? = null,
     shape: Shape = MaterialTheme.shapes.extraLarge,
@@ -89,7 +90,6 @@ private fun SuccessDialogContent(
     onTitlePanelColor: Color = contentColorFor(titlePanelColor),
     positiveBtnColor: Color = MaterialTheme.colorScheme.secondaryContainer,
     positiveOnBtnColor: Color = contentColorFor(positiveBtnColor),
-    modifier: Modifier = Modifier,
 ) {
     DialogScaffold(
         modifier = modifier,

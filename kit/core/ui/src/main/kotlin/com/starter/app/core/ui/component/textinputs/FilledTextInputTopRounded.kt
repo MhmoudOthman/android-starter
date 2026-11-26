@@ -5,12 +5,14 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.CornerSize
-import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.input.KeyboardActionHandler
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.input.InputTransformation
+import androidx.compose.foundation.text.input.TextFieldState
+import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Password
 import androidx.compose.material.icons.rounded.Visibility
-import androidx.compose.material.icons.rounded.VisibilityOff
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
@@ -24,9 +26,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import com.starter.app.core.designsystem.previews.PreviewLightDarkDevice
 import com.starter.app.core.designsystem.theme.AppTheme
@@ -49,8 +48,7 @@ import com.starter.app.core.designsystem.theme.AppTheme
  */
 @Composable
 fun FilledTextInputTopRounded(
-    value: String,
-    onValueChange: (String) -> Unit,
+    state: TextFieldState,
     modifier: Modifier = Modifier,
     label: String? = null,
     placeholder: String? = null,
@@ -59,8 +57,8 @@ fun FilledTextInputTopRounded(
     suffixText: String? = null,
     leadIcon: ImageVector? = null,
     trailIcon: ImageVector? = null,
-    leadIconOnClick: ()-> Unit = {},
-    trailIconOnClick: ()-> Unit = {},
+    leadIconOnClick: (() -> Unit)? = null,
+    trailIconOnClick: (() -> Unit)? = null,
     leadIconDescription: String? = null,
     trailIconDescription: String? = null,
     enabled: Boolean = true,
@@ -73,11 +71,11 @@ fun FilledTextInputTopRounded(
     containerColor: Color = Color.Unspecified,
     textStyle: TextStyle = LocalTextStyle.current,
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
-    keyboardActions: KeyboardActions = KeyboardActions.Default,
+    inputTransformation: InputTransformation? = null,
+    onKeyboardAction: KeyboardActionHandler? = null,
 ) {
     BaseFilledTextInputTopRounded(
-        value = value,
-        onValueChange = onValueChange,
+        state = state,
         modifier = modifier,
         label = textSlot(label),
         supportingText = textSlot(supportText, FontWeight.SemiBold),
@@ -89,21 +87,19 @@ fun FilledTextInputTopRounded(
         enabled = enabled,
         readOnly = readOnly,
         isError = isError,
-        singleLine = singleLine,
-        maxLines = maxLines,
-        minLines = minLines,
+        lineLimits = lineLimitsOf(singleLine, minLines, maxLines),
         cornerSize = cornerSize,
         containerColor = containerColor,
         textStyle = textStyle,
         keyboardOptions = keyboardOptions,
-        keyboardActions = keyboardActions,
+        inputTransformation = inputTransformation,
+        onKeyboardAction = onKeyboardAction,
     )
 }
 
 @Composable
 fun FilledTextInputTopRoundedPassword(
-    value: String,
-    onValueChange: (String) -> Unit,
+    state: TextFieldState,
     modifier: Modifier = Modifier,
     label: String? = null,
     placeholder: String? = null,
@@ -111,63 +107,40 @@ fun FilledTextInputTopRoundedPassword(
     prefixText: String? = null,
     suffixText: String? = null,
     leadIcon: ImageVector? = null,
-    leadIconOnClick: ()-> Unit = {},
+    leadIconOnClick: (() -> Unit)? = null,
     leadIconDescription: String? = null,
     enabled: Boolean = true,
     readOnly: Boolean = false,
     isError: Boolean = false,
-    singleLine: Boolean = false,
-    maxLines: Int = if (singleLine) 1 else Int.MAX_VALUE,
-    minLines: Int = 1,
     cornerSize: CornerSize = MaterialTheme.shapes.medium.topStart,
     containerColor: Color = Color.Unspecified,
     textStyle: TextStyle = LocalTextStyle.current,
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
-    keyboardActions: KeyboardActions = KeyboardActions.Default,
+    inputTransformation: InputTransformation? = null,
+    onKeyboardAction: KeyboardActionHandler? = null,
 ) {
     var passwordVisible by rememberSaveable { mutableStateOf(false) }
 
-    // The trailing slot is reserved for the visibility toggle, so this variant
-    // intentionally does not expose a `trailIcon` parameter.
-    val trailingIcon: @Composable (() -> Unit)? = if (value.isEmpty()) {
-        null
-    } else {
-        iconSlot(
-            icon = if (passwordVisible) Icons.Rounded.VisibilityOff else Icons.Rounded.Visibility,
-            contentDescription = if (passwordVisible) "Hide password" else "Show password",
-            onClick = { passwordVisible = !passwordVisible },
-        )
-    }
-
-    val visualTransformation = if (passwordVisible) {
-        VisualTransformation.None
-    } else {
-        PasswordVisualTransformation()
-    }
-
     BaseFilledTextInputTopRounded(
-        value = value,
-        onValueChange = onValueChange,
+        state = state,
         modifier = modifier,
         label = textSlot(label),
         supportingText = textSlot(supportText, FontWeight.SemiBold),
         placeholder = textSlot(placeholder),
         leadingIcon = iconSlot(leadIcon, leadIconDescription, leadIconOnClick),
-        trailingIcon = trailingIcon,
-        visualTransformation = visualTransformation,
+        trailingIcon = passwordToggleSlot(state, passwordVisible) { passwordVisible = !passwordVisible },
+        obfuscation = obfuscationFor(passwordVisible),
         prefix = textSlot(prefixText),
         suffix = textSlot(suffixText),
         enabled = enabled,
         readOnly = readOnly,
         isError = isError,
-        singleLine = singleLine,
-        maxLines = maxLines,
-        minLines = minLines,
         cornerSize = cornerSize,
         containerColor = containerColor,
         textStyle = textStyle,
-        keyboardOptions = keyboardOptions.copy(keyboardType = KeyboardType.Password),
-        keyboardActions = keyboardActions,
+        keyboardOptions = keyboardOptions.asPassword(),
+        inputTransformation = inputTransformation,
+        onKeyboardAction = onKeyboardAction,
     )
 }
 
@@ -183,8 +156,7 @@ fun PreviewFilledTextInputTopRounded() {
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             FilledTextInputTopRounded(
-                value = "",
-                onValueChange = {},
+                state = rememberTextFieldState(""),
                 label = "Label",
                 supportText = "Supporting text",
                 leadIcon = Icons.Rounded.Password,
@@ -194,8 +166,7 @@ fun PreviewFilledTextInputTopRounded() {
             )
             FilledTextInputTopRounded(
                 isError = true,
-                value = "Error",
-                onValueChange = {},
+                state = rememberTextFieldState("Error"),
                 label = "Label",
                 supportText = "Error message",
                 leadIcon = Icons.Rounded.Password,
@@ -205,8 +176,7 @@ fun PreviewFilledTextInputTopRounded() {
             )
             FilledTextInputTopRounded(
                 enabled = false,
-                value = "Disabled",
-                onValueChange = {},
+                state = rememberTextFieldState("Disabled"),
                 label = "Label",
                 supportText = "Supporting text",
                 leadIcon = Icons.Rounded.Password,
@@ -216,8 +186,7 @@ fun PreviewFilledTextInputTopRounded() {
             )
             FilledTextInputTopRounded(
                 readOnly = true,
-                value = "Read-only",
-                onValueChange = {},
+                state = rememberTextFieldState("Read-only"),
                 label = "Label",
                 supportText = "Supporting text",
                 leadIcon = Icons.Rounded.Password,
@@ -226,21 +195,18 @@ fun PreviewFilledTextInputTopRounded() {
                 suffixText = "Suffix"
             )
             FilledTextInputTopRounded(
-                value = "No label",
-                onValueChange = {},
+                state = rememberTextFieldState("No label"),
                 placeholder = "Placeholder",
                 supportText = "Supporting text",
             )
             // The point of the knob: the line stays full-width no matter how wide the corner gets.
             FilledTextInputTopRounded(
-                value = "Wide corner",
-                onValueChange = {},
+                state = rememberTextFieldState("Wide corner"),
                 label = "Label",
                 cornerSize = CornerSize(24.dp),
             )
             FilledTextInputTopRoundedPassword(
-                value = "secret",
-                onValueChange = {},
+                state = rememberTextFieldState("secret"),
                 label = "Password",
                 supportText = "Supporting text",
                 leadIcon = Icons.Rounded.Password,

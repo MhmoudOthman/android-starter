@@ -16,4 +16,5 @@
     <string name="history">History</string>
     <string name="enable_gps">Enable GPS</string>
     <string name="permission_rationale_location">Location (GPS) is required so the app can read your current position.</string>
+    <string name="invalid_input">Invalid input</string>
 </resources>

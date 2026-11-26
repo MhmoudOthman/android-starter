@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+        The system splash (SplashScreen API, backported by core-splashscreen): the launcher icon's
+        own foreground on its own background colour, over the app's surface colour (which has a
+        values-night twin). MainActivity holds it until the first screen is decided. Replacing the
+        launcher icon (ic_launcher_foreground + ic_launcher_background) rebrands this too.
+    -->
+    <style name="Theme.App.Starting" parent="Theme.SplashScreen.IconBackground">
+        <item name="windowSplashScreenBackground">@color/md_theme_surface</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_launcher_foreground</item>
+        <item name="windowSplashScreenIconBackgroundColor">@color/ic_launcher_background</item>
+        <item name="postSplashScreenTheme">@style/Theme.App</item>
+    </style>
+</resources>

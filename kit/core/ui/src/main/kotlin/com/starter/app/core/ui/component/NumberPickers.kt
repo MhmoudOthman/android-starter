@@ -9,6 +9,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.input.TextFieldLineLimits
+import androidx.compose.foundation.text.input.rememberTextFieldState
+import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Remove
@@ -25,6 +28,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
@@ -75,6 +79,24 @@ fun NumberPicker(
     val currentValue by rememberUpdatedState(value)
     val currentOnValueChange by rememberUpdatedState(onValueChange)
 
+    // The number lives in the caller's [value]; the field's text follows it both ways. A value set from
+    // outside (the buttons, a hold, a reset) is written into the field...
+    val textState = rememberTextFieldState(value.toString())
+    LaunchedEffect(value) {
+        if (textState.text.toString().toIntOrNull() != value) {
+            textState.setTextAndPlaceCursorAtEnd(value.toString())
+        }
+    }
+    // ...and what is typed goes out as a number, clamped to the range. Text that is not a number yet
+    // (a lone "-") is left alone until it is one; an emptied field means the lowest non-negative value.
+    LaunchedEffect(textState) {
+        snapshotFlow { textState.text.toString() }.collect { input ->
+            val typed = if (input.isEmpty()) minValue.coerceAtLeast(0) else input.toIntOrNull()
+            val clamped = typed?.coerceIn(minValue, maxValue) ?: return@collect
+            if (clamped != currentValue) currentOnValueChange(clamped)
+        }
+    }
+
     // Auto-increment effect. `repeated` is cleared as the press begins, never as it ends — `onClick`
     // fires after the release and has to still see whether this press did any stepping.
     LaunchedEffect(incPressed) {
@@ -108,7 +130,7 @@ fun NumberPicker(
     CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides 1.dp) {
         BaseOutlinedTextInput(
             modifier = modifier,
-            value = value.toString(),
+            state = textState,
             enabled = enabled,
             unfocusedColor = color,
             focusedColor = color,
@@ -120,7 +142,7 @@ fun NumberPicker(
             // Not just "a number is one line": Material only centers the text vertically on a
             // single-line field, and hangs it from the top padding otherwise. The height here is
             // set by the two buttons — which *are* centered — so without this the number sits high.
-            singleLine = true,
+            lineLimits = TextFieldLineLimits.SingleLine,
             keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.NumberSigned),
             textStyle = LocalTextStyle.current.copy(textAlign = TextAlign.Center),
             shape = shape,
@@ -129,16 +151,6 @@ fun NumberPicker(
             contentPadding = PaddingValues(horizontal = 6.sdp, vertical = 2.sdp),
             minWidth = 80.sdp,
             minHeight = 36.sdp,
-            onValueChange = { input ->
-                if (input.isEmpty()) {
-                    onValueChange(minValue.coerceAtLeast(0))
-                    return@BaseOutlinedTextInput
-                }
-
-                input.toIntOrNull()?.let { newValue ->
-                    onValueChange(newValue.coerceIn(minValue, maxValue))
-                }
-            },
             leadingIcon = {
                 FilledIconButtonBase(
                     // Skipped when the hold already stepped the value — the release would otherwise

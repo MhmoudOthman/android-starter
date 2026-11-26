@@ -1,22 +1,30 @@
 package com.starter.app.core.ui.component.textinputs
 
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.shape.CornerSize
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.shape.ZeroCornerSize
+import androidx.compose.foundation.text.BasicSecureTextField
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.input.KeyboardActionHandler
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.input.InputTransformation
+import androidx.compose.foundation.text.input.OutputTransformation
+import androidx.compose.foundation.text.input.TextFieldDecorator
+import androidx.compose.foundation.text.input.TextFieldLineLimits
+import androidx.compose.foundation.text.input.TextFieldState
+import androidx.compose.foundation.text.input.TextObfuscationMode
 import androidx.compose.foundation.text.selection.LocalTextSelectionColors
+import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.TextFieldColors
 import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.material3.TextFieldLabelScope
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
@@ -32,30 +40,123 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.error
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.starter.app.core.designsystem.dimen.sdp
 
+/*
+ * The app's text fields, on Compose's state-based text API: the text lives in a [TextFieldState],
+ * not in a `value` + `onValueChange` pair. The value-based overloads and `VisualTransformation`
+ * are deprecated from Compose 1.13; their replacements are [InputTransformation] (filter what is
+ * typed), [OutputTransformation] (change how it is shown) and, for passwords,
+ * [BasicSecureTextField] with a [TextObfuscationMode].
+ *
+ * Built on the Basic fields plus Material's own `decorator`s rather than on `OutlinedTextField` /
+ * `TextField`, for the reason the kit always had: those hard-code a 280x56dp floor, and
+ * `NumberPicker` is not a form field. Every default here is the value the Material field would
+ * have used, so a caller that passes none renders identically.
+ *
+ * A ViewModel that keeps its text as `String` (MVI state) bridges in with
+ * [rememberForwardingTextFieldState].
+ */
 
 /**
- * The app's outlined text field. Built on [BasicTextField] + [OutlinedTextFieldDefaults.DecorationBox]
- * rather than on `OutlinedTextField` itself, because the `String` overload of the latter hard-codes
- * its spacing: there is no way through it to change the 16dp of [contentPadding] or the 280x56dp
- * floor. That is a form field's spacing, and `NumberPicker` is not a form field. Every default here
- * is the value `OutlinedTextField` would have used, so a caller that passes none renders identically.
+ * `singleLine` / `minLines` / `maxLines` as the state API's [TextFieldLineLimits]. The public
+ * wrappers keep the three familiar knobs; this is the one place they are translated.
+ */
+fun lineLimitsOf(singleLine: Boolean, minLines: Int = 1, maxLines: Int = Int.MAX_VALUE): TextFieldLineLimits =
+    if (singleLine) TextFieldLineLimits.SingleLine else TextFieldLineLimits.MultiLine(minLines, maxLines)
+
+/** Material's decorators take a label scoped to `TextFieldLabelScope`; the kit's slots are plain. */
+private fun (@Composable () -> Unit)?.asLabelSlot(): (@Composable TextFieldLabelScope.() -> Unit)? =
+    this?.let { content -> { content() } }
+
+/**
+ * The text field itself, shared by the outlined and filled bases: a plain [BasicTextField], or a
+ * [BasicSecureTextField] when [obfuscation] is given (a password — always one line, never
+ * transformed for display, kept out of the clipboard and autocorrect).
+ */
+@Composable
+private fun TextInputField(
+    state: TextFieldState,
+    modifier: Modifier,
+    enabled: Boolean,
+    readOnly: Boolean,
+    textStyle: TextStyle,
+    fieldColors: TextFieldColors,
+    isError: Boolean,
+    inputTransformation: InputTransformation?,
+    outputTransformation: OutputTransformation?,
+    obfuscation: TextObfuscationMode?,
+    keyboardOptions: KeyboardOptions,
+    onKeyboardAction: KeyboardActionHandler?,
+    lineLimits: TextFieldLineLimits,
+    interactionSource: MutableInteractionSource,
+    decorator: TextFieldDecorator,
+) {
+    val focused by interactionSource.collectIsFocusedAsState()
+    val textColor = textStyle.color.takeOrElse {
+        when {
+            !enabled -> fieldColors.disabledTextColor
+            isError -> fieldColors.errorTextColor
+            focused -> fieldColors.focusedTextColor
+            else -> fieldColors.unfocusedTextColor
+        }
+    }
+    val mergedStyle = textStyle.merge(TextStyle(color = textColor))
+    val cursor = SolidColor(if (isError) fieldColors.errorCursorColor else fieldColors.cursorColor)
+
+    CompositionLocalProvider(LocalTextSelectionColors provides fieldColors.textSelectionColors) {
+        if (obfuscation != null) {
+            BasicSecureTextField(
+                state = state,
+                modifier = modifier,
+                enabled = enabled,
+                readOnly = readOnly,
+                inputTransformation = inputTransformation,
+                textStyle = mergedStyle,
+                keyboardOptions = keyboardOptions,
+                onKeyboardAction = onKeyboardAction,
+                interactionSource = interactionSource,
+                cursorBrush = cursor,
+                decorator = decorator,
+                textObfuscationMode = obfuscation,
+            )
+        } else {
+            BasicTextField(
+                state = state,
+                modifier = modifier,
+                enabled = enabled,
+                readOnly = readOnly,
+                inputTransformation = inputTransformation,
+                textStyle = mergedStyle,
+                keyboardOptions = keyboardOptions,
+                onKeyboardAction = onKeyboardAction,
+                lineLimits = lineLimits,
+                interactionSource = interactionSource,
+                cursorBrush = cursor,
+                outputTransformation = outputTransformation,
+                decorator = decorator,
+            )
+        }
+    }
+}
+
+/**
+ * The app's outlined text field.
  *
+ * @param obfuscation non-null makes this a password field (see `OutlinedTextInputPassword`):
+ *   [lineLimits] and [outputTransformation] are then ignored — a secure field is one line and is
+ *   never re-shaped for display.
  * @param contentPadding space between the input text and the icons around it (or the container
- *   edges when there are no icons). Note the decoration box subtracts the icons' own touch-target
+ *   edges when there are no icons). Note the decorator subtracts the icons' own touch-target
  *   padding from the horizontal values, so with icons present anything under ~12dp reads as 0.
  * @param minWidth minimum width the field settles at when nothing else constrains it.
  * @param minHeight as [minWidth], for the height.
  */
 @Composable
 fun BaseOutlinedTextInput(
-    value: String,
-    onValueChange: (String) -> Unit,
+    state: TextFieldState,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     readOnly: Boolean = false,
@@ -68,12 +169,12 @@ fun BaseOutlinedTextInput(
     suffix: @Composable (() -> Unit)? = null,
     supportingText: @Composable (() -> Unit)? = null,
     isError: Boolean = false,
-    visualTransformation: VisualTransformation = VisualTransformation.None,
+    inputTransformation: InputTransformation? = null,
+    outputTransformation: OutputTransformation? = null,
+    obfuscation: TextObfuscationMode? = null,
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
-    keyboardActions: KeyboardActions = KeyboardActions.Default,
-    singleLine: Boolean = false,
-    maxLines: Int = if (singleLine) 1 else Int.MAX_VALUE,
-    minLines: Int = 1,
+    onKeyboardAction: KeyboardActionHandler? = null,
+    lineLimits: TextFieldLineLimits = TextFieldLineLimits.Default,
     interactionSource: MutableInteractionSource? = null,
     shape: Shape = MaterialTheme.shapes.medium,
     contentPadding: PaddingValues = OutlinedTextFieldDefaults.contentPaddingWithoutLabel(),
@@ -87,9 +188,6 @@ fun BaseOutlinedTextInput(
     focusedBorderThickness: Dp = OutlinedTextFieldDefaults.FocusedBorderThickness,
     unfocusedBorderThickness: Dp = OutlinedTextFieldDefaults.UnfocusedBorderThickness
 ) {
-    val validatedMaxLines = if (singleLine) 1 else maxLines
-    val validatedMinLines = if (singleLine) 1 else minLines
-
     var colors = TextInputColors.default()
     if (focusedColor != null) colors = colors.copy(focusedColor = focusedColor)
     if (unfocusedColor != null) colors = colors.copy(unfocusedColor = unfocusedColor)
@@ -100,82 +198,64 @@ fun BaseOutlinedTextInput(
 
     @Suppress("NAME_SHADOWING")
     val interactionSource = interactionSource ?: remember { MutableInteractionSource() }
-    val focused by interactionSource.collectIsFocusedAsState()
-    val textColor = textStyle.color.takeOrElse {
-        when {
-            !enabled -> fieldColors.disabledTextColor
-            isError -> fieldColors.errorTextColor
-            focused -> fieldColors.focusedTextColor
-            else -> fieldColors.unfocusedTextColor
-        }
-    }
-    // Compose's own localized "Invalid input" string — the same one `OutlinedTextField` announces,
-    // reached directly because the accessor that wraps it is internal to Material 3.
-    val errorMessage = stringResource(androidx.compose.ui.R.string.default_error_message)
+    val effectiveLineLimits = if (obfuscation != null) TextFieldLineLimits.SingleLine else lineLimits
+    val effectiveOutput = if (obfuscation != null) null else outputTransformation
+    // The field's "invalid input" announcement for screen readers. Our own string rather than
+    // Compose's private `default_error_message`, which lint rightly refuses (PrivateResource).
+    val errorMessage = stringResource(com.starter.app.core.designsystem.R.string.invalid_input)
 
-    CompositionLocalProvider(LocalTextSelectionColors provides fieldColors.textSelectionColors) {
-        BasicTextField(
-            value = value,
-            onValueChange = onValueChange,
-            modifier = modifier
-                .labelCutoutPadding(hasLabel = label != null)
-                .semantics { if (isError) error(errorMessage) }
-                .defaultMinSize(minWidth = minWidth, minHeight = minHeight),
+    TextInputField(
+        state = state,
+        modifier = modifier
+            .labelCutoutPadding(hasLabel = label != null)
+            .semantics { if (isError) error(errorMessage) }
+            .defaultMinSize(minWidth = minWidth, minHeight = minHeight),
+        enabled = enabled,
+        readOnly = readOnly,
+        textStyle = textStyle,
+        fieldColors = fieldColors,
+        isError = isError,
+        inputTransformation = inputTransformation,
+        outputTransformation = effectiveOutput,
+        obfuscation = obfuscation,
+        keyboardOptions = keyboardOptions,
+        onKeyboardAction = onKeyboardAction,
+        lineLimits = effectiveLineLimits,
+        interactionSource = interactionSource,
+        decorator = OutlinedTextFieldDefaults.decorator(
+            state = state,
             enabled = enabled,
-            readOnly = readOnly,
-            textStyle = textStyle.merge(TextStyle(color = textColor)),
-            keyboardOptions = keyboardOptions,
-            keyboardActions = keyboardActions,
-            singleLine = singleLine,
-            maxLines = validatedMaxLines,
-            minLines = validatedMinLines,
-            visualTransformation = visualTransformation,
+            lineLimits = effectiveLineLimits,
+            outputTransformation = effectiveOutput,
             interactionSource = interactionSource,
-            cursorBrush = SolidColor(
-                if (isError) fieldColors.errorCursorColor else fieldColors.cursorColor
-            ),
-            decorationBox = { innerTextField ->
-                OutlinedTextFieldDefaults.DecorationBox(
-                    value = value,
-                    innerTextField = innerTextField,
+            label = label.asLabelSlot(),
+            placeholder = placeholder,
+            leadingIcon = leadingIcon,
+            trailingIcon = trailingIcon,
+            prefix = prefix,
+            suffix = suffix,
+            supportingText = supportingText,
+            isError = isError,
+            colors = fieldColors,
+            contentPadding = contentPadding,
+            container = {
+                OutlinedTextFieldDefaults.Container(
                     enabled = enabled,
-                    singleLine = singleLine,
-                    visualTransformation = visualTransformation,
-                    interactionSource = interactionSource,
                     isError = isError,
-                    label = label,
-                    placeholder = placeholder,
-                    leadingIcon = leadingIcon,
-                    trailingIcon = trailingIcon,
-                    prefix = prefix,
-                    suffix = suffix,
-                    supportingText = supportingText,
+                    interactionSource = interactionSource,
                     colors = fieldColors,
-                    contentPadding = contentPadding,
-                    container = {
-                        OutlinedTextFieldDefaults.Container(
-                            enabled = enabled,
-                            isError = isError,
-                            interactionSource = interactionSource,
-                            colors = fieldColors,
-                            shape = shape,
-                            focusedBorderThickness = focusedBorderThickness,
-                            unfocusedBorderThickness = unfocusedBorderThickness
-
-                        )
-                    },
+                    shape = shape,
+                    focusedBorderThickness = focusedBorderThickness,
+                    unfocusedBorderThickness = unfocusedBorderThickness,
                 )
             },
-        )
-    }
+        ),
+    )
 }
 
 /**
  * The app's filled text field — the same field as [BaseOutlinedTextInput] with a tonal container
- * and a bottom indicator line instead of a border, built on [BasicTextField] +
- * [TextFieldDefaults.DecorationBox] for exactly the same reason: the `String` overload of
- * `TextField` hard-codes its 16dp [contentPadding] and its 280x56dp floor. Every default here is
- * the value `TextField` would have used, so a caller that passes none renders identically.
+ * and a bottom indicator line instead of a border.
  *
  * Two things differ from the outlined base, both because the filled label sits *inside* the
  * container rather than straddling the top edge: there is no cutout padding to reserve
@@ -183,29 +263,20 @@ fun BaseOutlinedTextInput(
  * [label] is present — a labelled filled field packs the label and the input into the same height,
  * so it needs the tighter vertical padding or the two collide.
  *
- * @param contentPadding space between the input text and the icons around it (or the container
- *   edges when there are no icons). Note the decoration box subtracts the icons' own touch-target
- *   padding from the horizontal values, so with icons present anything under ~12dp reads as 0.
- * @param minWidth minimum width the field settles at when nothing else constrains it.
- * @param minHeight as [minWidth], for the height.
+ * @param obfuscation non-null makes this a password field; see [BaseOutlinedTextInput].
  * @param shape defaults to [TextFieldDefaults.shape] — top corners only — rather than to
  *   `shapes.medium` like the outlined field, because the indicator line is clipped to this shape
  *   and rounded bottom corners cut its ends off.
  * @param containerColor the field's background in every state. Left unspecified, Material's own
  *   filled container color applies.
  * @param shadowElevation shadow cast by the field. It rides on the **container's** own modifier,
- *   not on the text field's: the decoration box draws the supporting text below the container, so a
- *   shadow applied further out would trace the field and its supporting line together. Note the
- *   shadow shows through a translucent [containerColor], and that Material's own answer to
- *   elevation is a tonal container rather than a shadow — in a dark theme the shadow is barely
- *   visible while a lighter container still reads. Only [BaseFilledTextInputFullRounded] exposes
- *   this: on the top-rounded shape the shadow runs under the flat bottom edge and past the ends of
- *   the indicator line.
+ *   not on the text field's: the decorator draws the supporting text below the container, so a
+ *   shadow applied further out would trace the field and its supporting line together. Only
+ *   [BaseFilledTextInputFullRounded] exposes this.
  */
 @Composable
 fun BaseFilledTextInput(
-    value: String,
-    onValueChange: (String) -> Unit,
+    state: TextFieldState,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     readOnly: Boolean = false,
@@ -218,12 +289,12 @@ fun BaseFilledTextInput(
     suffix: @Composable (() -> Unit)? = null,
     supportingText: @Composable (() -> Unit)? = null,
     isError: Boolean = false,
-    visualTransformation: VisualTransformation = VisualTransformation.None,
+    inputTransformation: InputTransformation? = null,
+    outputTransformation: OutputTransformation? = null,
+    obfuscation: TextObfuscationMode? = null,
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
-    keyboardActions: KeyboardActions = KeyboardActions.Default,
-    singleLine: Boolean = false,
-    maxLines: Int = if (singleLine) 1 else Int.MAX_VALUE,
-    minLines: Int = 1,
+    onKeyboardAction: KeyboardActionHandler? = null,
+    lineLimits: TextFieldLineLimits = TextFieldLineLimits.Default,
     interactionSource: MutableInteractionSource? = null,
     shape: Shape = TextFieldDefaults.shape,
     contentPadding: PaddingValues = if (label == null) {
@@ -243,9 +314,6 @@ fun BaseFilledTextInput(
     focusedIndicatorThickness: Dp = TextFieldDefaults.FocusedIndicatorThickness,
     unfocusedIndicatorThickness: Dp = TextFieldDefaults.UnfocusedIndicatorThickness
 ) {
-    val validatedMaxLines = if (singleLine) 1 else maxLines
-    val validatedMinLines = if (singleLine) 1 else minLines
-
     var colors = TextInputColors.default()
     if (focusedColor != null) colors = colors.copy(focusedColor = focusedColor)
     if (unfocusedColor != null) colors = colors.copy(unfocusedColor = unfocusedColor)
@@ -256,103 +324,74 @@ fun BaseFilledTextInput(
 
     @Suppress("NAME_SHADOWING")
     val interactionSource = interactionSource ?: remember { MutableInteractionSource() }
-    val focused by interactionSource.collectIsFocusedAsState()
-    val textColor = textStyle.color.takeOrElse {
-        when {
-            !enabled -> fieldColors.disabledTextColor
-            isError -> fieldColors.errorTextColor
-            focused -> fieldColors.focusedTextColor
-            else -> fieldColors.unfocusedTextColor
-        }
-    }
-    // Compose's own localized "Invalid input" string — the same one `TextField` announces,
-    // reached directly because the accessor that wraps it is internal to Material 3.
-    val errorMessage = stringResource(androidx.compose.ui.R.string.default_error_message)
+    val effectiveLineLimits = if (obfuscation != null) TextFieldLineLimits.SingleLine else lineLimits
+    val effectiveOutput = if (obfuscation != null) null else outputTransformation
+    val errorMessage = stringResource(com.starter.app.core.designsystem.R.string.invalid_input)
 
-    CompositionLocalProvider(LocalTextSelectionColors provides fieldColors.textSelectionColors) {
-        BasicTextField(
-            value = value,
-            onValueChange = onValueChange,
-            modifier = modifier
-                .semantics(mergeDescendants = true) {}
-                .semantics { if (isError) error(errorMessage) }
-                .defaultMinSize(minWidth = minWidth, minHeight = minHeight),
+    TextInputField(
+        state = state,
+        modifier = modifier
+            .semantics(mergeDescendants = true) {}
+            .semantics { if (isError) error(errorMessage) }
+            .defaultMinSize(minWidth = minWidth, minHeight = minHeight),
+        enabled = enabled,
+        readOnly = readOnly,
+        textStyle = textStyle,
+        fieldColors = fieldColors,
+        isError = isError,
+        inputTransformation = inputTransformation,
+        outputTransformation = effectiveOutput,
+        obfuscation = obfuscation,
+        keyboardOptions = keyboardOptions,
+        onKeyboardAction = onKeyboardAction,
+        lineLimits = effectiveLineLimits,
+        interactionSource = interactionSource,
+        decorator = TextFieldDefaults.decorator(
+            state = state,
             enabled = enabled,
-            readOnly = readOnly,
-            textStyle = textStyle.merge(TextStyle(color = textColor)),
-            keyboardOptions = keyboardOptions,
-            keyboardActions = keyboardActions,
-            singleLine = singleLine,
-            maxLines = validatedMaxLines,
-            minLines = validatedMinLines,
-            visualTransformation = visualTransformation,
+            lineLimits = effectiveLineLimits,
+            outputTransformation = effectiveOutput,
             interactionSource = interactionSource,
-            cursorBrush = SolidColor(
-                if (isError) fieldColors.errorCursorColor else fieldColors.cursorColor
-            ),
-            decorationBox = { innerTextField ->
-                TextFieldDefaults.DecorationBox(
-                    value = value,
-                    innerTextField = innerTextField,
+            label = label.asLabelSlot(),
+            placeholder = placeholder,
+            leadingIcon = leadingIcon,
+            trailingIcon = trailingIcon,
+            prefix = prefix,
+            suffix = suffix,
+            supportingText = supportingText,
+            isError = isError,
+            colors = fieldColors,
+            contentPadding = contentPadding,
+            container = {
+                TextFieldDefaults.Container(
                     enabled = enabled,
-                    singleLine = singleLine,
-                    visualTransformation = visualTransformation,
-                    interactionSource = interactionSource,
                     isError = isError,
-                    label = label,
-                    placeholder = placeholder,
-                    leadingIcon = leadingIcon,
-                    trailingIcon = trailingIcon,
-                    prefix = prefix,
-                    suffix = suffix,
-                    supportingText = supportingText,
-                    shape = shape,
+                    interactionSource = interactionSource,
+                    // A zero elevation returns the modifier untouched, so the shadow costs
+                    // nothing on the fields that do not ask for one.
+                    modifier = Modifier.shadow(shadowElevation, shape),
                     colors = fieldColors,
-                    contentPadding = contentPadding,
-                    container = {
-                        TextFieldDefaults.Container(
-                            enabled = enabled,
-                            isError = isError,
-                            interactionSource = interactionSource,
-                            // A zero elevation returns the modifier untouched, so the shadow
-                            // costs nothing on the fields that do not ask for one.
-                            modifier = Modifier.shadow(shadowElevation, shape),
-                            colors = fieldColors,
-                            shape = shape,
-                            focusedIndicatorLineThickness = focusedIndicatorThickness,
-                            unfocusedIndicatorLineThickness = unfocusedIndicatorThickness
-                        )
-                    },
+                    shape = shape,
+                    focusedIndicatorLineThickness = focusedIndicatorThickness,
+                    unfocusedIndicatorLineThickness = unfocusedIndicatorThickness,
                 )
             },
-        )
-    }
+        ),
+    )
 }
 
 /**
  * [BaseFilledTextInput] rounded on **all four corners, with no indicator line** — the container is
- * the whole field.
+ * the whole field. A rounded bottom corner would eat the ends of the indicator line, so rounding
+ * all four means dropping it; focus then reads only through the label, cursor and icon colors.
  *
- * The two go together and neither is a free choice. The indicator is drawn as a full-width strip
- * along the bottom edge intersected with the container's own outline, so a rounded bottom corner
- * eats the strip's ends and leaves a short line with curved tips; the wider the [cornerSize], the
- * less line survives. Rounding all four corners therefore means dropping the line, and dropping the
- * line is what makes the rounding look deliberate rather than clipped.
- *
- * The cost is that focus has no shape to announce itself with: it reads only through the label,
- * cursor and icon colors. Where that is too quiet, pass a [containerColor] that stands out from the
- * surface behind it, or use [BaseFilledTextInputTopRounded] and keep the line.
- *
- * @param cornerSize radius of all four corners. Defaults to the theme's medium corner — the same
- *   one [BaseOutlinedTextInput] uses — and accepts a percentage (`CornerSize(50)`) for a pill.
+ * @param cornerSize radius of all four corners. Accepts a percentage (`CornerSize(50)`) for a pill.
  * @param shadowElevation shadow cast by the field, drawn on the container alone. This is the one
- *   shape it belongs on: with no indicator line and every corner rounded, the container *is* the
- *   field, so a shadow traces it exactly. See [BaseFilledTextInput] for the caveats.
+ *   shape it belongs on: with no line and every corner rounded, the container *is* the field.
  */
 @Composable
 fun BaseFilledTextInputFullRounded(
-    value: String,
-    onValueChange: (String) -> Unit,
+    state: TextFieldState,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     readOnly: Boolean = false,
@@ -365,12 +404,12 @@ fun BaseFilledTextInputFullRounded(
     suffix: @Composable (() -> Unit)? = null,
     supportingText: @Composable (() -> Unit)? = null,
     isError: Boolean = false,
-    visualTransformation: VisualTransformation = VisualTransformation.None,
+    inputTransformation: InputTransformation? = null,
+    outputTransformation: OutputTransformation? = null,
+    obfuscation: TextObfuscationMode? = null,
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
-    keyboardActions: KeyboardActions = KeyboardActions.Default,
-    singleLine: Boolean = false,
-    maxLines: Int = if (singleLine) 1 else Int.MAX_VALUE,
-    minLines: Int = 1,
+    onKeyboardAction: KeyboardActionHandler? = null,
+    lineLimits: TextFieldLineLimits = TextFieldLineLimits.Default,
     interactionSource: MutableInteractionSource? = null,
     cornerSize: CornerSize = MaterialTheme.shapes.medium.topStart,
     contentPadding: PaddingValues = if (label == null) {
@@ -388,8 +427,7 @@ fun BaseFilledTextInputFullRounded(
     containerColor: Color = Color.Unspecified,
     shadowElevation: Dp = 0.dp,
 ) = BaseFilledTextInput(
-    value = value,
-    onValueChange = onValueChange,
+    state = state,
     modifier = modifier,
     enabled = enabled,
     readOnly = readOnly,
@@ -402,12 +440,12 @@ fun BaseFilledTextInputFullRounded(
     suffix = suffix,
     supportingText = supportingText,
     isError = isError,
-    visualTransformation = visualTransformation,
+    inputTransformation = inputTransformation,
+    outputTransformation = outputTransformation,
+    obfuscation = obfuscation,
     keyboardOptions = keyboardOptions,
-    keyboardActions = keyboardActions,
-    singleLine = singleLine,
-    maxLines = maxLines,
-    minLines = minLines,
+    onKeyboardAction = onKeyboardAction,
+    lineLimits = lineLimits,
     interactionSource = interactionSource,
     shape = RoundedCornerShape(cornerSize),
     contentPadding = contentPadding,
@@ -426,20 +464,12 @@ fun BaseFilledTextInputFullRounded(
 
 /**
  * [BaseFilledTextInput] rounded on the **top two corners only**, keeping the indicator line — the
- * classic filled field, at whatever radius the design calls for.
- *
- * This is the variant that leaves the line alone: the bottom edge stays square, so the strip runs
- * the full width with square ends however wide [cornerSize] gets. For the fully rounded look, see
- * [BaseFilledTextInputFullRounded], which drops the line rather than let it be clipped.
- *
- * @param cornerSize radius of the top two corners; the bottom two stay square. Defaults to the
- *   theme's medium corner — note Material's own filled default is the smaller 4dp
- *   [TextFieldDefaults.shape].
+ * classic filled field, at whatever radius the design calls for. The bottom edge stays square, so
+ * the line runs the full width with square ends however wide [cornerSize] gets.
  */
 @Composable
 fun BaseFilledTextInputTopRounded(
-    value: String,
-    onValueChange: (String) -> Unit,
+    state: TextFieldState,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     readOnly: Boolean = false,
@@ -452,12 +482,12 @@ fun BaseFilledTextInputTopRounded(
     suffix: @Composable (() -> Unit)? = null,
     supportingText: @Composable (() -> Unit)? = null,
     isError: Boolean = false,
-    visualTransformation: VisualTransformation = VisualTransformation.None,
+    inputTransformation: InputTransformation? = null,
+    outputTransformation: OutputTransformation? = null,
+    obfuscation: TextObfuscationMode? = null,
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
-    keyboardActions: KeyboardActions = KeyboardActions.Default,
-    singleLine: Boolean = false,
-    maxLines: Int = if (singleLine) 1 else Int.MAX_VALUE,
-    minLines: Int = 1,
+    onKeyboardAction: KeyboardActionHandler? = null,
+    lineLimits: TextFieldLineLimits = TextFieldLineLimits.Default,
     interactionSource: MutableInteractionSource? = null,
     cornerSize: CornerSize = MaterialTheme.shapes.medium.topStart,
     contentPadding: PaddingValues = if (label == null) {
@@ -476,8 +506,7 @@ fun BaseFilledTextInputTopRounded(
     focusedIndicatorThickness: Dp = TextFieldDefaults.FocusedIndicatorThickness,
     unfocusedIndicatorThickness: Dp = TextFieldDefaults.UnfocusedIndicatorThickness
 ) = BaseFilledTextInput(
-    value = value,
-    onValueChange = onValueChange,
+    state = state,
     modifier = modifier,
     enabled = enabled,
     readOnly = readOnly,
@@ -490,12 +519,12 @@ fun BaseFilledTextInputTopRounded(
     suffix = suffix,
     supportingText = supportingText,
     isError = isError,
-    visualTransformation = visualTransformation,
+    inputTransformation = inputTransformation,
+    outputTransformation = outputTransformation,
+    obfuscation = obfuscation,
     keyboardOptions = keyboardOptions,
-    keyboardActions = keyboardActions,
-    singleLine = singleLine,
-    maxLines = maxLines,
-    minLines = minLines,
+    onKeyboardAction = onKeyboardAction,
+    lineLimits = lineLimits,
     interactionSource = interactionSource,
     shape = RoundedCornerShape(
         topStart = cornerSize,
@@ -519,7 +548,7 @@ fun BaseFilledTextInputTopRounded(
 /**
  * The label straddles the top border, so the field reserves half a label line above itself or the
  * cutout is clipped. `OutlinedTextField` does this internally; going through
- * [OutlinedTextFieldDefaults.DecorationBox] — which is what buys the `contentPadding` knob — means
+ * Material's `decorator` — which is what buys the `contentPadding` knob — means
  * doing it here instead.
  */
 @Composable

@@ -15,13 +15,14 @@ import androidx.navigation.compose.composable
  * The app's single nav graph. Every screen is reached through a presentation module's `XxxRoute`,
  * which takes plain lambdas for navigation — presentation modules never depend on navigation.
  *
- * `startDestination` is a parameter purely so a shell test can open on the graph it is about.
+ * There is no Splash destination: the system splash (SplashScreen API) covers the launch, and
+ * [startDestination] is decided behind it by `LaunchViewModel`.
  */
 @Composable
 fun AppNavHost(
     navController: NavHostController,
+    startDestination: Screen,
     modifier: Modifier = Modifier,
-    startDestination: Screen = Screen.Home,
 ) {
     NavHost(
         navController = navController,
@@ -33,7 +34,7 @@ fun AppNavHost(
         }
 
         // composable<Screen.Login> {
-        //     LoginRoute(onLoginSuccess = {
+        //     LoginRoute(onLoggedIn = {
         //         navController.navigate(Screen.HomeGraph) { popUpTo<Screen.Login> { inclusive = true } }
         //     })
         // }

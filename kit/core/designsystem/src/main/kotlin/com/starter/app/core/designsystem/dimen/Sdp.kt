@@ -3,6 +3,7 @@ package com.starter.app.core.designsystem.dimen
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.unit.Dp
@@ -88,8 +89,7 @@ private fun sdpResourceId(value: Int): Int {
 
     // Safe in a @ReadOnlyComposable: no groups are emitted, so reaching this conditionally cannot
     // desynchronise the slot table.
-    val context = LocalContext.current
-    val resolved = context.resources.getIdentifier(name, "dimen", context.packageName)
+    val resolved = LocalResources.current.getIdentifier(name, "dimen", LocalContext.current.packageName)
     cache[index] = resolved
     return resolved
 }

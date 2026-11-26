@@ -11,6 +11,11 @@ class AppApplication : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        // When the app grows a theme setting, its cached night mode is put back here, before
+        // startKoin and before any activity exists: AppCompat's night mode lives in memory only, so
+        // without it every cold start draws its first frame in the handset's mode (CLAUDE.md §8).
+        // The language needs nothing here — the platform (or AppCompat's own store) keeps it.
+
         startKoin {
             androidLogger(Level.ERROR)
             androidContext(this@AppApplication)
