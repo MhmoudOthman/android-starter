@@ -13,6 +13,7 @@
 #   4. Runs the kit's rename-package.sh (package root + app_name), then removes the kit's own tooling
 #      (rename scripts, kit README) so the project starts clean.
 #   5. Optionally rewrites the three BASE_URLs in core/network/build.gradle.kts.
+#   6. Writes local.properties (sdk.dir from ANDROID_HOME) when none was kept.
 #
 # Deterministic on purpose: the agent that calls this should not be hand-editing namespaces.
 set -euo pipefail
@@ -98,6 +99,20 @@ set_url() { # $1 = build type, $2 = url
 set_url debug "$DEBUG_URL"
 set_url release "$RELEASE_URL"
 set_url staging "$STAGING_URL"
+
+# ---- 6. local.properties (sdk.dir), unless one was kept ------------------------------------------
+# Forward slashes and an escaped colon (`D\:/Android/Sdk`): a single backslash is an escape to the
+# properties parser, and lint's PropertyEscape flags an unescaped colon.
+if [ ! -f local.properties ]; then
+  SDK_DIR="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-}}"
+  if [ -z "$SDK_DIR" ] && [ -n "${LOCALAPPDATA:-}" ]; then SDK_DIR="$LOCALAPPDATA/Android/Sdk"; fi
+  if [ -n "$SDK_DIR" ]; then
+    printf 'sdk.dir=%s\n' "$(printf '%s' "$SDK_DIR" | sed 's#\\#/#g; s#:#\\:#g')" > local.properties
+    echo "  local.properties: $(cat local.properties)"
+  else
+    echo "  no ANDROID_HOME: write local.properties yourself (sdk.dir=D\\:/Android/Sdk)"
+  fi
+fi
 
 echo
 echo "scaffolded '$APP_NAME' ($PKG) into $TARGET"

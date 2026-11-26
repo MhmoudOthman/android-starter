@@ -13,6 +13,13 @@ internal val Project.catalog: VersionCatalog
 /** One place for the JVM level every module compiles to. */
 internal val JAVA_VERSION: JavaVersion = JavaVersion.VERSION_11
 internal const val COMPILE_SDK = 37
+
+/**
+ * The minor SDK release compiled against (37.2). Compose 1.13 / Material3 1.5 need at least 37.1.
+ * Only the compile SDK: it opens newer APIs to the compiler and changes nothing at runtime —
+ * [TARGET_SDK] is what opts the app into new behaviour.
+ */
+internal const val COMPILE_SDK_MINOR = 2
 internal const val MIN_SDK = 26
 internal const val TARGET_SDK = 37
 

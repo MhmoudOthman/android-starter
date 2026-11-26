@@ -37,8 +37,8 @@ import com.starter.app.core.designsystem.dimen.sdp
 fun ElevatedButtonBase(
     text: String,
     containerColor: Color,
-    contentColor: Color = contentColorFor(containerColor),
     modifier: Modifier = Modifier,
+    contentColor: Color = contentColorFor(containerColor),
     disabledContainerAlpha: Float = 0.2f,
     disabledContentAlpha: Float = 0.5f,
     shape: Shape = MaterialTheme.shapes.medium,

@@ -51,6 +51,9 @@ rules. In one breath: `core/model` · `core/common` · `core/network` (client on
 plugins. Features are added per the blueprint as `domain:<f>` / `data:<f>` / `presentation:<f>`; the kit
 ships none.
 
+Building it needs Android Studio 2026.2.2 (Rabbit 2)+ (AGP 9.5, Gradle ≥ 9.6) and the Android 37.2 SDK
+platform (compileSdk 37.2).
+
 ## CI
 
 Every push scaffolds a throwaway project from the kit on Ubuntu and runs `./gradlew test assembleDebug`

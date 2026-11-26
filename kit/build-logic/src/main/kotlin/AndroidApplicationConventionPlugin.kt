@@ -16,7 +16,9 @@ class AndroidApplicationConventionPlugin : Plugin<Project> {
 
         extensions.configure<ApplicationExtension> {
             namespace = appId
-            compileSdk = COMPILE_SDK
+            compileSdk {
+                version = release(COMPILE_SDK) { minorApiLevel = COMPILE_SDK_MINOR }
+            }
             defaultConfig {
                 applicationId = appId
                 minSdk = MIN_SDK

@@ -4,6 +4,7 @@ import com.starter.app.core.datastore.AppDataStore
 import com.starter.app.core.model.session.SessionState
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.async
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
@@ -28,6 +29,7 @@ import java.io.IOException
  * are all quiet ones — a user's row restored after a logout, one account's data written over
  * another's, one account's `401` shown to another — so none of them would surface without tests.
  */
+@OptIn(ExperimentalCoroutinesApi::class)
 class SessionGuardTest {
 
     private val store = FakeStore()
@@ -117,7 +119,6 @@ class SessionGuardTest {
             store.readFailure = IOException("disk")
 
             guard.ifStillCurrent(session) { "written" }
-            Unit
         }
 
     // ---- clearing what a signed-out app must not keep -------------------------------------------

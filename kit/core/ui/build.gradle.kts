@@ -18,4 +18,7 @@ dependencies {
     // Animations inside the shared dialogs. implementation, not api: a dialog takes a raw-res id,
     // so no Lottie type reaches a caller's signature.
     implementation(libs.lottie.compose)
+
+    // Window size classes (compact / medium / expanded) behind `currentWidthClass()`.
+    implementation(libs.compose.material3.adaptive)
 }

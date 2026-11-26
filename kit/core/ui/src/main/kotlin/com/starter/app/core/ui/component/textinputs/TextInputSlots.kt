@@ -23,19 +23,34 @@ fun textSlot(
 ): @Composable (() -> Unit)? =
     text?.let { { Text(text = it, fontWeight = fontWeight) } }
 
-/** Wraps [icon] in an [Icon] slot, or returns null when [icon] is null. */
+/**
+ * Wraps [icon] in a slot, or returns null when [icon] is null.
+ *
+ * A button only when there is something to do: with no [onClick] the icon is plain decoration.
+ * Every icon used to be a button, a no-op one when nothing was passed — focusable, announced by
+ * TalkBack as a button, and the place keyboard Next landed instead of the next field (on a sign-in
+ * form, Next from the username focused its account icon).
+ */
 internal fun iconSlot(
     icon: ImageVector?,
     contentDescription: String?,
-    onClick: () -> Unit = {},
+    onClick: (() -> Unit)? = null,
 ): @Composable (() -> Unit)? =
-    icon?.let { { IconButtonBase(
-        onClick = onClick,
-        icon = { modifier: Modifier ->
-        Icon(
-            modifier = modifier,
-            imageVector = it,
-            contentDescription = contentDescription
-        )
+    icon?.let { vector ->
+        if (onClick == null) {
+            { Icon(imageVector = vector, contentDescription = contentDescription) }
+        } else {
+            {
+                IconButtonBase(
+                    onClick = onClick,
+                    icon = { modifier: Modifier ->
+                        Icon(
+                            modifier = modifier,
+                            imageVector = vector,
+                            contentDescription = contentDescription,
+                        )
+                    },
+                )
+            }
+        }
     }
-    ) }}

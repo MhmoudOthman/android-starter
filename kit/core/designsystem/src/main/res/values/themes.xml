@@ -51,12 +51,11 @@
 
     </style>
 
-    <style name="Theme.App" parent="AppTheme" >
-
-        <item name="android:statusBarColor">?colorSurface</item>
-        <item name="android:navigationBarColor">?colorSurface</item>
-        <item name="android:navigationBarDividerColor" tools:targetApi="o_mr1">?colorOnSurface</item>
-
-    </style>
+    <!--
+        No bar colours here: the app is edge to edge (MainActivity, WindowCompat.enableEdgeToEdge),
+        and from targetSdk 35 statusBarColor / navigationBarColor no longer do anything at all.
+        The icon contrast (windowLight*Bar) comes from AppTheme and its values-night twin.
+    -->
+    <style name="Theme.App" parent="AppTheme" />
 
 </resources>

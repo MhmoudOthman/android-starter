@@ -16,10 +16,10 @@ Cursor…) reads on every session; this README is for the human copying the kit.
 | `core/common` | `AppException`, `AppCodes`, string/format extensions |
 | `core/network` | Ktor `HttpClientFactory`, `ApiResponse`/`ApiError`, `apiCall` / `apiCallNoContent` (suspend) + `apiCallFlow` / `saveFile` (streams), `ConnectivityChecker`. **No endpoints** — a feature's API + DTOs live in its `data` module. |
 | `core/datastore` | `AppDataStore` interface + impl (token, login flag, language, theme), `SessionGuard`, retry helpers — with their JVM tests |
-| `core/designsystem` | `AppTheme` on the **Material 3 baseline palette** (no brand), extended colour roles (warning / info / errorBg), the Cairo font family, `ProvideAppConfiguration`, `Int.sdp`/`Int.ssp`, a placeholder adaptive launcher icon, and **only the strings the shared components use** |
-| `core/ui` | `BaseMviViewModel` + `MviContract`, and the shared component library (buttons, cards, dialogs, text fields, `LoadingOverlay`, top bar) — with a keypath test for the success animation |
+| `core/designsystem` | `AppTheme` on the **Material 3 baseline palette** (no brand), extended colour roles (warning / info / errorBg), the Cairo font family, `Int.sdp`/`Int.ssp`, a placeholder adaptive launcher icon, and **only the strings the shared components use** |
+| `core/ui` | `BaseMviViewModel` + `MviContract`, the shared component library (buttons, cards, dialogs, **`TextFieldState`-based** text fields, `LoadingOverlay`, top bar) and `currentWidthClass()` (window size classes) — with a keypath test for the success animation |
 | `core/testing` | `MainDispatcherRule`, pinned Robolectric SDK |
-| `app` | `AppApplication` (Koin), thin `MainActivity`, `AppModules`, typed `Screen` routes, `AppNavHost` with a placeholder Home, and **`AppModulesTest`** (`Module.verify()` — every Koin definition proven resolvable at test time) |
+| `app` | `AppApplication` (Koin), a thin `MainActivity : AppCompatActivity` (platform per-app language + night mode, SplashScreen API, edge to edge), `LaunchViewModel` (start destination behind the system splash), `AppModules`, typed `Screen` routes, `AppNavHost` with a placeholder Home, and **`AppModulesTest`** (`Module.verify()` — every Koin definition proven resolvable at test time) |
 | `rename-package.sh` / `.ps1` | Renames the package root and moves the directories |
 
 Not included on purpose (they are app-specific, and the blueprint tells the agent how to build them):
@@ -57,9 +57,16 @@ Backend contract: <paste endpoints + JSON shapes>. Ask before deviating from any
 ## Verify the kit still builds
 
 ```bash
-./gradlew test assembleDebug
+./gradlew test assembleDebug lintDebug
 ```
 
-Every test in the kit runs on the JVM (no device). On a Windows machine behind a corporate proxy
-the convention plugins already point the test JVM at the `Windows-ROOT` trust store so Robolectric
-can download its platform jar.
+Green means zero compiler warnings and zero lint errors as well. Every test in the kit runs on the
+JVM (no device). Needs Android Studio 2026.2.2 (Rabbit 2) or newer — AGP 9.5 — and the Android 37.2
+SDK platform (compileSdk 37.2).
+
+On a Windows machine behind a corporate proxy the convention plugins already point the test JVM at
+the `Windows-ROOT` trust store so Robolectric can download its platform jar. Gradle itself, run from
+a terminal, needs the same: `-Djavax.net.ssl.trustStoreType=Windows-ROOT -Djava.net.preferIPv4Stack=true`
+(in `JAVA_TOOL_OPTIONS`). Let Android Studio's Sync do large dependency downloads; never run a CLI
+build while Studio is building (the configuration cache is locked), and never `gradlew --stop` — it
+stops Studio's daemon too.

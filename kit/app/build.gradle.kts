@@ -41,6 +41,21 @@ if (signingStorePath == null &&
 }
 
 android {
+    // Every language in every install. Once the app switches language itself (a settings screen),
+    // an AAB split that ships only the handset's language would leave the other one showing raw
+    // fallbacks after the switch.
+    bundle {
+        language {
+            enableSplit = false
+        }
+    }
+
+    // Writes the manifest's localeConfig from the values-xx folders (default locale in
+    // res/resources.properties), so Android 13+ lists the app under Settings › Apps › Language.
+    androidResources {
+        generateLocaleConfig = true
+    }
+
     signingConfigs {
         create("release") {
             if (signingStorePath != null) {
@@ -97,10 +112,17 @@ dependencies {
     // Navigation — only :app depends on it. Presentation modules take lambdas.
     implementation(libs.navigation.compose)
 
+    // AppCompatActivity: per-app language (AppCompatDelegate.setApplicationLocales) and night mode
+    // (setDefaultNightMode) are applied to it by the platform, dialogs and resources included.
+    implementation(libs.androidx.appcompat)
+    // The system splash on API 31+, backported below it; held until the start screen is known.
+    implementation(libs.androidx.core.splashscreen)
+
     // AppModulesTest: Module.verify() proves every Koin definition resolves, at test time.
     testImplementation(libs.koin.test)
     testImplementation(kotlin("reflect"))
     testImplementation(libs.coroutines.test)
+    testImplementation(projects.core.testing)
     // DataStore is an implementation detail of :core:datastore; the test names it as an extraType.
     testImplementation(libs.datastore.preferences)
 }

@@ -1,6 +1,7 @@
 package com.starter.app.core.testing
 
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.TestDispatcher
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
@@ -20,6 +21,7 @@ import org.junit.runner.Description
  * scheduler nudging in between. A test that genuinely cares about ordering can pass a
  * `StandardTestDispatcher` instead and drive it with `advanceUntilIdle()`.
  */
+@OptIn(ExperimentalCoroutinesApi::class)
 class MainDispatcherRule(
     /**
      * Exposed so a test can hand the *same* dispatcher to `runTest`. Sharing it shares the

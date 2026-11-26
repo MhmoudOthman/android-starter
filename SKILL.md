@@ -49,14 +49,27 @@ removes the kit's own tooling. Read its final summary rather than re-deriving it
 ./gradlew test assembleDebug
 ```
 
-Green means: the four convention plugins configured every module, the kit's 24 JVM tests passed
-(one is skipped on Windows by design), and `AppModulesTest` proved the Koin graph resolves. If the
-build fails on `SDK location not found`, the directory has no `local.properties` — write one with
-`sdk.dir=D:/Android/Sdk` (forward slashes; a Windows path with single backslashes is *unescaped*
-by the properties parser into `D:AndroidSdk` and fails with "filename, directory name, or volume
-label syntax is incorrect") rather than editing build files. On this machine the shell
-needs `JAVA_HOME`, `ANDROID_HOME` and the proxy trust-store settings from the project memory
-(`gradle-cli-workarounds`).
+Green means: the four convention plugins configured every module, the kit's JVM tests passed
+(one is skipped on Windows by design), `AppModulesTest` proved the Koin graph resolves, and the
+compiler printed no warnings. If the build fails on `SDK location not found`, the directory has no
+`local.properties` (the script writes one from `ANDROID_HOME` when it can) — write it as
+`sdk.dir=D\:/Android/Sdk`: forward slashes, because a single backslash is *unescaped* by the
+properties parser into `D:AndroidSdk` ("filename, directory name, or volume label syntax is
+incorrect"), and an escaped colon, which lint's `PropertyEscape` asks for. Never edit build files to
+get past it.
+
+The kit needs Android Studio 2026.2.2 (Rabbit 2)+ (AGP 9.5, Gradle ≥ 9.6) and the **Android 37.2** SDK
+platform (compileSdk 37.2 — Compose 1.13 needs ≥ 37.1).
+
+Running Gradle from a terminal on this machine (corporate proxy):
+- The shell needs `JAVA_HOME` (Android Studio's `jbr`) and `ANDROID_HOME`, and
+  `JAVA_TOOL_OPTIONS="-Djavax.net.ssl.trustStoreType=Windows-ROOT -Djava.net.preferIPv4Stack=true"` —
+  the proxy's certificate lives in the Windows store, and IPv6 routes fail behind it. See also the
+  project memory `gradle-cli-workarounds`.
+- Prefer Android Studio's **Sync** for large dependency downloads (a new AGP/Gradle/BOM); the CLI
+  then works from the cache.
+- Never run a CLI build while Studio is building — they share the configuration-cache lock — and
+  **never `gradlew --stop`**: it stops Studio's daemon too.
 
 ### 4. Hand over
 
@@ -94,7 +107,16 @@ proven, not assumed).
 `core/model` (`Result`, `SessionState`) · `core/common` (`AppException`, `AppCodes`) ·
 `core/network` (Ktor client, `apiCall`/`apiCallNoContent` suspend helpers, no endpoints) ·
 `core/datastore` (`AppDataStore` + `SessionGuard`, tested) · `core/designsystem` (`AppTheme`,
-shared strings only, `Int.sdp`) · `core/ui` (`BaseMviViewModel`, component library) ·
-`core/testing` · a thin `:app` · `build-logic/` with `app.jvm.library`, `app.android.library`,
-`app.android.library.compose`, `app.android.application`. Features are added as
-`domain:<f>` / `data:<f>` / `presentation:<f>` per the blueprint — the kit ships none.
+shared strings only, `Int.sdp`) · `core/ui` (`BaseMviViewModel`, component library on
+`TextFieldState`, `currentWidthClass()`) · `core/testing` · a thin `:app` · `build-logic/` with
+`app.jvm.library`, `app.android.library`, `app.android.library.compose`, `app.android.application`.
+Features are added as `domain:<f>` / `data:<f>` / `presentation:<f>` per the blueprint — the kit
+ships none.
+
+Launch and appearance follow the Android-recommended platform APIs (blueprint §8):
+`MainActivity : AppCompatActivity`, so the per-app language (`AppCompatDelegate.setApplicationLocales`,
+listed in system Settings through a generated `localeConfig`) and night mode (`setDefaultNightMode`)
+are applied by the platform — dialogs and `-night` resources included; the **SplashScreen API** held
+by `LaunchViewModel` until the start destination is known (no in-app splash route); edge to edge with
+no bar colours. A language/theme *setting* is a feature (`domain:settings` / `data:settings`), and §8
+holds its pattern.

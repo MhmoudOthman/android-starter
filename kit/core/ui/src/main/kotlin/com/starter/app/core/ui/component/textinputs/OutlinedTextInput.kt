@@ -4,8 +4,12 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.input.KeyboardActionHandler
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.input.InputTransformation
+import androidx.compose.foundation.text.input.TextFieldState
+import androidx.compose.foundation.text.input.TextObfuscationMode
+import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Password
 import androidx.compose.material.icons.rounded.Visibility
@@ -22,20 +26,22 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.text.input.VisualTransformation
-import androidx.compose.ui.tooling.preview.AndroidUiModes.UI_MODE_NIGHT_YES
-import androidx.compose.ui.tooling.preview.AndroidUiModes.UI_MODE_TYPE_NORMAL
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.starter.app.core.designsystem.previews.PreviewLightDarkDevice
 import com.starter.app.core.designsystem.theme.AppTheme
 
-
+/**
+ * The app's outlined form field: `String` label, `ImageVector` icons, the text in a
+ * [TextFieldState]. For a ViewModel that keeps the text as `String`, create the state with
+ * [rememberForwardingTextFieldState].
+ *
+ * @param inputTransformation filters or changes what is typed (a max length, digits only).
+ * @param onKeyboardAction runs on the IME action; leave it `null` and the action does its default
+ *   (Next moves focus, Done closes the keyboard).
+ */
 @Composable
 fun OutlinedTextInput(
-    value: String,
-    onValueChange: (String) -> Unit,
+    state: TextFieldState,
     modifier: Modifier = Modifier,
     label: String? = null,
     placeholder: String? = null,
@@ -44,8 +50,8 @@ fun OutlinedTextInput(
     suffixText: String? = null,
     leadIcon: ImageVector? = null,
     trailIcon: ImageVector? = null,
-    leadIconOnClick: ()-> Unit = {},
-    trailIconOnClick: ()-> Unit = {},
+    leadIconOnClick: (() -> Unit)? = null,
+    trailIconOnClick: (() -> Unit)? = null,
     leadIconDescription: String? = null,
     trailIconDescription: String? = null,
     enabled: Boolean = true,
@@ -55,37 +61,39 @@ fun OutlinedTextInput(
     maxLines: Int = if (singleLine) 1 else Int.MAX_VALUE,
     minLines: Int = 1,
     textStyle: TextStyle = LocalTextStyle.current,
+    inputTransformation: InputTransformation? = null,
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
-    keyboardActions: KeyboardActions = KeyboardActions.Default,
+    onKeyboardAction: KeyboardActionHandler? = null,
 ) {
     BaseOutlinedTextInput(
-        value = value,
-        onValueChange = onValueChange,
+        state = state,
         modifier = modifier,
         label = textSlot(label),
         supportingText = textSlot(supportText, FontWeight.SemiBold),
         placeholder = textSlot(placeholder),
-        leadingIcon = iconSlot(leadIcon, leadIconDescription,leadIconOnClick),
+        leadingIcon = iconSlot(leadIcon, leadIconDescription, leadIconOnClick),
         trailingIcon = iconSlot(trailIcon, trailIconDescription, trailIconOnClick),
         prefix = textSlot(prefixText),
         suffix = textSlot(suffixText),
         enabled = enabled,
         readOnly = readOnly,
         isError = isError,
-        singleLine = singleLine,
-        maxLines = maxLines,
-        minLines = minLines,
+        lineLimits = lineLimitsOf(singleLine, minLines, maxLines),
         textStyle = textStyle,
+        inputTransformation = inputTransformation,
         keyboardOptions = keyboardOptions,
-        keyboardActions = keyboardActions,
+        onKeyboardAction = onKeyboardAction,
     )
 }
 
-
+/**
+ * [OutlinedTextInput] for a password: a secure field (one line, kept out of the clipboard and
+ * autocorrect) with a show/hide toggle in the trailing slot, which is why this variant takes no
+ * `trailIcon`. The toggle appears once something is typed.
+ */
 @Composable
 fun OutlinedTextInputPassword(
-    value: String,
-    onValueChange: (String) -> Unit,
+    state: TextFieldState,
     modifier: Modifier = Modifier,
     label: String? = null,
     placeholder: String? = null,
@@ -93,61 +101,62 @@ fun OutlinedTextInputPassword(
     prefixText: String? = null,
     suffixText: String? = null,
     leadIcon: ImageVector? = null,
-    leadIconOnClick: ()-> Unit = {},
+    leadIconOnClick: (() -> Unit)? = null,
     leadIconDescription: String? = null,
     enabled: Boolean = true,
     readOnly: Boolean = false,
     isError: Boolean = false,
-    singleLine: Boolean = false,
-    maxLines: Int = if (singleLine) 1 else Int.MAX_VALUE,
-    minLines: Int = 1,
     textStyle: TextStyle = LocalTextStyle.current,
+    inputTransformation: InputTransformation? = null,
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
-    keyboardActions: KeyboardActions = KeyboardActions.Default,
+    onKeyboardAction: KeyboardActionHandler? = null,
 ) {
     var passwordVisible by rememberSaveable { mutableStateOf(false) }
 
-    // The trailing slot is reserved for the visibility toggle, so this variant
-    // intentionally does not expose a `trailIcon` parameter.
-    val trailingIcon: @Composable (() -> Unit)? = if (value.isEmpty()) {
-        null
-    } else {
-        iconSlot(
-            icon = if (passwordVisible) Icons.Rounded.VisibilityOff else Icons.Rounded.Visibility,
-            contentDescription = if (passwordVisible) "Hide password" else "Show password",
-            onClick = { passwordVisible = !passwordVisible },
-        )
-    }
-
-    val visualTransformation = if (passwordVisible) {
-        VisualTransformation.None
-    } else {
-        PasswordVisualTransformation()
-    }
-
     BaseOutlinedTextInput(
-        value = value,
-        onValueChange = onValueChange,
+        state = state,
         modifier = modifier,
         label = textSlot(label),
         supportingText = textSlot(supportText, FontWeight.SemiBold),
         placeholder = textSlot(placeholder),
         leadingIcon = iconSlot(leadIcon, leadIconDescription, leadIconOnClick),
-        trailingIcon = trailingIcon,
-        visualTransformation = visualTransformation,
+        trailingIcon = passwordToggleSlot(state, passwordVisible) { passwordVisible = !passwordVisible },
+        obfuscation = obfuscationFor(passwordVisible),
         prefix = textSlot(prefixText),
         suffix = textSlot(suffixText),
         enabled = enabled,
         readOnly = readOnly,
         isError = isError,
-        singleLine = singleLine,
-        maxLines = maxLines,
-        minLines = minLines,
         textStyle = textStyle,
-        keyboardOptions = keyboardOptions.copy(keyboardType = KeyboardType.Password),
-        keyboardActions = keyboardActions,
+        inputTransformation = inputTransformation,
+        keyboardOptions = keyboardOptions.asPassword(),
+        onKeyboardAction = onKeyboardAction,
     )
 }
+
+/** Shown: plain text. Hidden: masked, with the last typed character briefly visible. */
+internal fun obfuscationFor(visible: Boolean): TextObfuscationMode =
+    if (visible) TextObfuscationMode.Visible else TextObfuscationMode.RevealLastTyped
+
+/** A password keyboard, with no suggestions or autocorrect learning the password. */
+internal fun KeyboardOptions.asPassword(): KeyboardOptions =
+    copy(keyboardType = KeyboardType.Password, autoCorrectEnabled = false)
+
+/** The show/hide toggle, or nothing while the field is empty. */
+internal fun passwordToggleSlot(
+    state: TextFieldState,
+    visible: Boolean,
+    onToggle: () -> Unit,
+): @Composable (() -> Unit)? =
+    if (state.text.isEmpty()) {
+        null
+    } else {
+        iconSlot(
+            icon = if (visible) Icons.Rounded.VisibilityOff else Icons.Rounded.Visibility,
+            contentDescription = if (visible) "Hide password" else "Show password",
+            onClick = onToggle,
+        )
+    }
 
 @PreviewLightDarkDevice
 @Composable
@@ -161,8 +170,7 @@ fun PreviewOutlinedTextInput() {
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             OutlinedTextInput(
-                value = "",
-                onValueChange = {},
+                state = rememberTextFieldState(),
                 label = "Label",
                 supportText = "Supporting text",
                 leadIcon = Icons.Rounded.Password,
@@ -171,9 +179,8 @@ fun PreviewOutlinedTextInput() {
                 suffixText = "Suffix"
             )
             OutlinedTextInput(
+                state = rememberTextFieldState("Error"),
                 isError = true,
-                value = "Error",
-                onValueChange = {},
                 label = "Label",
                 supportText = "Error message",
                 leadIcon = Icons.Rounded.Password,
@@ -182,9 +189,8 @@ fun PreviewOutlinedTextInput() {
                 suffixText = "Suffix"
             )
             OutlinedTextInput(
+                state = rememberTextFieldState("Disabled"),
                 enabled = false,
-                value = "Disabled",
-                onValueChange = {},
                 label = "Label",
                 supportText = "Supporting text",
                 leadIcon = Icons.Rounded.Password,
@@ -193,9 +199,8 @@ fun PreviewOutlinedTextInput() {
                 suffixText = "Suffix"
             )
             OutlinedTextInput(
+                state = rememberTextFieldState("Read-only"),
                 readOnly = true,
-                value = "Read-only",
-                onValueChange = {},
                 label = "Label",
                 supportText = "Supporting text",
                 leadIcon = Icons.Rounded.Password,
@@ -204,8 +209,7 @@ fun PreviewOutlinedTextInput() {
                 suffixText = "Suffix"
             )
             OutlinedTextInputPassword(
-                value = "secret",
-                onValueChange = {},
+                state = rememberTextFieldState("secret"),
                 label = "Password",
                 supportText = "Supporting text",
                 leadIcon = Icons.Rounded.Password,

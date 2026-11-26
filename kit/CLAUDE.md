@@ -34,8 +34,8 @@
 
 | Concern | Choice |
 |---|---|
-| Language / build | Kotlin 2.4 · AGP 9.2 · KSP · Gradle version catalog · `TYPESAFE_PROJECT_ACCESSORS` · `build-logic` included build with convention plugins |
-| UI | Jetpack Compose (BOM) · Material 3 · Navigation Compose (typed routes) |
+| Language / build | Kotlin 2.4 · AGP 9.5 (Gradle wrapper ≥ 9.6, Android Studio 2026.2.2 "Rabbit 2"+) · compileSdk 37.2 · KSP · Gradle version catalog · `TYPESAFE_PROJECT_ACCESSORS` · `build-logic` included build with convention plugins |
+| UI | Jetpack Compose (BOM) · Material 3 1.5 (stable, Expressive) · material3-adaptive (window size classes) · Navigation Compose (typed routes) · AppCompat (per-app language + night mode, §8) · core-splashscreen |
 | DI | Koin (`koin-core`, `koin-android`, `koin-androidx-compose`; `koin-test` for `verify()`) |
 | Network | Ktor client (OkHttp engine) + kotlinx.serialization JSON |
 | Local storage | Room (KSP) · DataStore Preferences |
@@ -167,6 +167,10 @@ app.versionCode=1
 Build-type suffixes (`-Dev` / `-Release` / `-Staging`) are constants in `build-logic`. Keep any
 suffix **behind the first `-`**: version comparisons use `substringBefore('-')`.
 
+`android.disallowKotlinSourceSets=false` belongs in `gradle.properties` **only once a module applies
+KSP** (Room's compiler, say): KSP generates sources through `kotlin.sourceSets`, which AGP's built-in
+Kotlin refuses without that opt-in. With no KSP module the property only earns an AGP warning.
+
 **Signing** is read in `app/build.gradle.kts` from `local.properties` (gitignored) with an
 environment-variable fallback for CI (`signing.storeFile` / `SIGNING_STORE_FILE`, and the same for
 `storePassword`, `keyAlias`, `keyPassword`). Never a literal in a committed file. `:app` fails
@@ -217,7 +221,7 @@ build-logic/
 ├── build.gradle.kts           `kotlin-dsl`; compileOnly(libs.android.gradlePlugin / kotlin.gradlePlugin / compose.gradlePlugin);
 │                              gradlePlugin { register(...) } for the four ids below
 └── src/main/kotlin/
-    ├── ProjectExt.kt          libs catalog accessor · COMPILE_SDK/MIN_SDK/TARGET_SDK · JAVA_VERSION ·
+    ├── ProjectExt.kt          libs catalog accessor · COMPILE_SDK(+_MINOR)/MIN_SDK/TARGET_SDK · JAVA_VERSION ·
     │                          appId/appVersionName/appVersionCode from gradle.properties · suffix constants ·
     │                          configureTestTrustStore() (Windows-ROOT for Robolectric behind a proxy)
     ├── JvmLibraryConventionPlugin.kt            app.jvm.library
@@ -238,6 +242,7 @@ Three things about the plugins that are easy to get wrong:
 - **`maybeCreate("staging")` in the library plugin, `getByName("staging")` in a module.** Every library must declare the build type, or `:app`'s staging variant falls back to the library's *release* variant — which resolves `core:network` to production and silently defeats the variant.
 - **The plugins `compileOnly` AGP/KGP; the root `plugins { … apply false }` block is what puts them on the runtime classpath.** Remove that block and every `pluginManager.apply("com.android.library")` fails.
 - **`ui-test-manifest` is `debugImplementation`.** Unit tests run against the debug variant's merged manifest, and that is what declares the activity the Compose rule launches into.
+- **The compile SDK carries a minor release:** `compileSdk { version = release(COMPILE_SDK) { minorApiLevel = COMPILE_SDK_MINOR } }` (37.2). Compose 1.13 / Material3 1.5 refuse anything below 37.1, and a plain `compileSdk = 37` means 37.0. It only opens newer APIs to the compiler; `TARGET_SDK` is what opts the app into new behaviour.
 
 ### 3.5 Which modules a feature actually needs
 
@@ -337,6 +342,8 @@ val networkModule = module { single { HttpClientFactory.create() }; single<Conne
 
 ### 4.6 Design system — `:core:designsystem`
 - `AppTheme` (Material 3, light/dark — the M3 baseline palette until a brand replaces `Color.kt` with a Material Theme Builder export) + `ExtendedColorScheme` via a `CompositionLocal` for roles Material lacks (`warning`, `info`, `errorBg`). A family added there is filled in for every scheme — a miss is a compile error, not a black.
+- **No luminance checks in screens.** When a colour has to differ between light and dark beyond what the Material roles give — a main action whose container all but disappears on the dark surface — add a **named role** to `ExtendedColorScheme` (e.g. `brandAction: ColorFamily`) with light and dark values that each reach **≥ 4.5:1** against what they sit on. A `color.luminance() > 0.5` branch in a screen is a theme decision made in the wrong place, and the next brand silently breaks it.
+- The launcher icon is the adaptive icon in `res/mipmap-anydpi/` (no `-v26` qualifier: minSdk is 26). Vector drawables stay at **≤ 200dp declared size** — larger ones are rasterised slowly at load (lint `VectorRaster`); scale them in layout instead.
 - **Only the strings the shared `core:ui` components reference live here** (OK, back, close, retry, pull-to-refresh…), plus `app_name`. **A feature's strings go in its presentation module's `res/values/strings.xml`** (and `values-<lang>/`), so the feature is self-contained and a copy change does not recompile the app. Reference shared ones as `DesignSystemR.string.x`, the module's own as its `R.string.x`.
 - Icons come from the packs `api`'d here: Material Icons (core + extended) and Composables Material Symbols Rounded (outlined + filled). Add a vector drawable for anything they lack rather than another pack — a pack `api`'d here reaches every module and only shows its cost in the release APK.
 - `dimen/Sdp.kt`: `Int.sdp` / `Int.ssp` resolving Intuit's `_Nsdp` tables with the resource **id cached per process** in an `IntArray`. Keep `res/raw/keep.xml` so the resource shrinker does not strip them (failure is silent: everything renders as plain dp).
@@ -364,6 +371,12 @@ abstract class BaseMviViewModel<Intent, State, Effect>(
 }
 ```
 `:core:ui` also owns the shared component library: `AppButton`s, `AppCard`s, `AppTextField`s, `ErrorDialog`/`AppAlertDialog`/`SuccessDialog` on one `DialogScaffold`, `AppTopBar`, `LoadingOverlay`, `AppPullToRefreshBox`, snackbar. Features compose these; they do not restyle Material directly.
+
+Text fields are **state-based** (Compose 1.13 deprecated `value`/`onValueChange` and `VisualTransformation`): `OutlinedTextInput`, `OutlinedTextInputPassword` (a `BasicSecureTextField` with a show/hide toggle over `TextObfuscationMode`) and the filled variants take a `TextFieldState`; use `InputTransformation` to filter input and `OutputTransformation` to reshape display, and `onKeyboardAction: KeyboardActionHandler?` for the IME action. They are built on `BasicTextField(state)` + `OutlinedTextFieldDefaults.decorator` / `TextFieldDefaults.decorator`, which keeps control of content padding and min size. An MVI screen creates the state with `rememberForwardingTextFieldState(state.x) { onIntent(XChanged(it)) }` — the field owns cursor/IME, the ViewModel gets each edit as a `String`, and **must treat the same text again as a no-op** (the saved state re-reports it after a recreate). A ViewModel that must *write* the text owns the `TextFieldState` itself. `NumberPicker` keeps its `Int` and its `TextFieldState` in sync both ways; `AppDropdownField` mirrors the selection into a read-only state. Icons in fields are plain decoration unless given an `onClick` (`leadIconOnClick`/`trailIconOnClick` are nullable): a no-op icon button steals keyboard Next and reads as a button in TalkBack.
+
+Composable APIs follow the Compose guidelines: `modifier: Modifier = Modifier` is the **first optional** parameter, and a component never reads a private resource of another library (`invalid_input` is our own string, not `androidx.compose.ui.R.string.default_error_message`).
+
+`adaptive/WidthClass.kt`: `currentWidthClass()` → `COMPACT` (< 600dp) / `MEDIUM` (600–839dp) / `EXPANDED` (≥ 840dp), read from `currentWindowAdaptiveInfoV2()`. Layouts branch on it — see §8.
 
 ---
 
@@ -538,6 +551,7 @@ val appModules: List<Module> = listOf(
     domainCommonModule, dataCommonModule,
     domain<Feature>Module, data<Feature>Module, presentation<Feature>Module,   // one line per feature module
     presentationShellModule,
+    appModule,                                                                   // :app's own: LaunchViewModel (§8.2)
 )
 
 // src/test/.../di/AppModulesTest.kt — the graph is proven at test time, not on the first screen open
@@ -562,8 +576,7 @@ Then: add the module to `settings.gradle.kts`, add `implementation(projects.<lay
 ## 6. Navigation & shell
 
 ```kotlin
-@Serializable sealed class Screen {
-    @Serializable data object Splash : Screen()
+@Serializable sealed class Screen {                              // no Splash: the system splash covers launch (§8)
     @Serializable data object Login : Screen()
     @Serializable data object HomeGraph : Screen() {           // nested GRAPH, not nested NavHost
         @Serializable data object Orders : Screen()
@@ -598,14 +611,81 @@ Then: add the module to `settings.gradle.kts`, add `implementation(projects.<lay
 - Blocking `LoadingOverlay` only for work the user is waiting on; background refreshes show in the control (button `isLoading`, switch `thumbContent`).
 - A dialog with no safe dismiss (forced update, session expired) has **no** dismiss route at all; a dialog whose cancel costs nothing is fully dismissible.
 - Everything that changes state after a network write follows the **server's answer**, never the local guess.
+- The app is edge to edge (§8), so **every screen takes its insets**: a `Scaffold`'s `innerPadding` is applied, then `consumeWindowInsets(innerPadding)` **before** `imePadding()` — otherwise the keyboard padding is added on top of the navigation-bar padding the Scaffold already applied.
 
 ---
 
-## 8. Localisation & theme
-- Two-language apps: `AppLanguage` enum with a `fromTag` fallback in one place; no "follow system" entry unless the handset's locale is a real third answer. Theme keeps `SYSTEM`.
-- Apply language + night mode **inside the composition** through one `ProvideAppConfiguration` composable (a `ContextThemeWrapper` around the activity with `applyOverrideConfiguration`), providing `LocalContext` + `LocalConfiguration` + `LocalLayoutDirection`. Do **not** use `AppCompatDelegate` on a `ComponentActivity` — it is silently ignored below API 33.
-- First frame waits on the stored choice through a bounded `Loading / Loaded / Error` loader (no `runBlocking` in `onCreate`).
-- Data layer reads the **stored** language, not `Locale.getDefault()`; formatters in `:core:common` pin `Locale.ENGLISH`.
+## 8. Localisation, theme, launch & layout
+
+### 8.1 Language and night mode — applied by the platform, through AppCompat
+- Two-language apps: `AppLanguage` enum with a `fromTag` fallback in one place; no "follow system" entry unless the handset's locale is a real third answer. Theme keeps `SYSTEM`. Both are stored as **tags**, never ordinals.
+- **`MainActivity : AppCompatActivity`** (`:app` depends on `androidx.appcompat`). The platform applies both settings to it; a change **recreates the activity**, and every string, `-night` resource, dialog, popup and the layout direction follow without Compose being told.
+- **Language:** `AppCompatDelegate.setApplicationLocales(LocaleListCompat.forLanguageTags(tag))`; read back with `getApplicationLocales()`. Android 13+: this *is* the system per-app language (Settings › Apps › Language). Below 13: AppCompat stores it itself — the manifest declares `androidx.appcompat.app.AppLocalesMetadataHolderService` (`enabled=false`, `exported=false`) with `<meta-data android:name="autoStoreLocales" android:value="true"/>`.
+- `:app` sets `androidResources { generateLocaleConfig = true }` + `app/src/main/res/resources.properties` (`unqualifiedResLocale=en`) — that is what lists the app in the system language picker — and `bundle { language { enableSplit = false } }`, so an in-app switch never lands on a language the AAB did not install.
+- **The UI shows the platform's language** (from the configuration), never a stored copy: on 13+ the user can change it in system Settings without the app hearing about it.
+- **Night mode:** `AppCompatDelegate.setDefaultNightMode(...)`. It is **in memory only**, so the choice is also cached in a small `SharedPreferences` file and re-applied synchronously in `Application.onCreate`, before any activity exists (DataStore cannot give a synchronous read). On API 31+ also call `UiModeManager.setApplicationNightMode(...)` — the system splash is drawn before the app runs, from the night mode the *system* holds for the app, and without it a Light choice on a dark handset opens on a dark splash.
+- `isSystemInDarkTheme()` then already reports the app's choice: `AppTheme(darkTheme = isSystemInDarkTheme())`, nothing else.
+- Data layer reads the **applied/stored** language, not the handset's; formatters in `:core:common` pin `Locale.ENGLISH`.
+
+**Why not an in-composition override.** The kit used to apply both inside Compose (`ProvideAppConfiguration`: a `ContextThemeWrapper` with `applyOverrideConfiguration`, providing `LocalContext`/`LocalConfiguration`/`LocalLayoutDirection`). It looked right on the main screen and was wrong at the edges: every **window** (`Dialog`, `Popup`, `DropdownMenu`) rebuilds `LocalContext` from the activity and showed the **handset's** language, and `painterResource`'s vector cache ignored the in-app night bit, so a logo drawn from `-night` colours stayed light in Dark. Do not reintroduce it.
+
+**Where the code lives** (a `settings` vertical — the kit ships none):
+```kotlin
+// data:settings/appearance/PlatformAppearance.kt — an interface so the repo's decisions test without Android
+interface PlatformAppearance {
+    fun appliedLanguageTag(): String?            // null: none set, follow the handset
+    suspend fun applyLanguage(tag: String)
+    suspend fun applyThemeMode(tag: String)
+}
+class AppCompatPlatformAppearance(private val context: Context) : PlatformAppearance {
+    override fun appliedLanguageTag() = AppCompatDelegate.getApplicationLocales().takeUnless { it.isEmpty }?.get(0)?.language
+    override suspend fun applyLanguage(tag: String) = withContext(Dispatchers.Main.immediate) {
+        AppCompatDelegate.setApplicationLocales(LocaleListCompat.forLanguageTags(tag))
+    }
+    override suspend fun applyThemeMode(tag: String) = withContext(Dispatchers.Main.immediate) {
+        context.themeCache().edit { putString(KEY_THEME_MODE, tag) }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            context.getSystemService(UiModeManager::class.java)?.setApplicationNightMode(uiModeFor(tag))   // the system splash
+        }
+        AppCompatDelegate.setDefaultNightMode(nightModeFor(tag))
+    }
+    companion object {
+        fun applyCachedThemeMode(context: Context) {   // Application.onCreate, before startKoin
+            val tag = context.themeCache().getString(KEY_THEME_MODE, null) ?: return
+            AppCompatDelegate.setDefaultNightMode(nightModeFor(tag))
+        }
+        // nightModeFor: "light" → MODE_NIGHT_NO, "dark" → MODE_NIGHT_YES, else MODE_NIGHT_FOLLOW_SYSTEM
+        // uiModeFor:    "light" → UiModeManager.MODE_NIGHT_NO, "dark" → MODE_NIGHT_YES, else MODE_NIGHT_AUTO
+    }
+}
+
+// data:settings/repo/AppPreferencesRepoImpl.kt — STORED in AppDataStore, APPLIED by PlatformAppearance
+override fun observePreferences() = combine(dataStore.observeLanguage(), dataStore.observeThemeMode()) { stored, theme ->
+    AppPreferences(AppLanguage.fromTag(appearance.appliedLanguageTag() ?: stored ?: Locale.getDefault().language), ThemeMode.fromTag(theme))
+}.distinctUntilChanged()
+override suspend fun setLanguage(language: AppLanguage) { dataStore.saveLanguage(language.tag); appearance.applyLanguage(language.tag) }   // store first: applying recreates the activity
+override suspend fun applyStoredAppearance() {             // ApplyStoredAppearanceUseCase, from LaunchViewModel
+    val stored = dataStore.getLanguage()
+    if (appearance.appliedLanguageTag() == null && stored != null) appearance.applyLanguage(AppLanguage.fromTag(stored).tag)   // never over a platform value
+    appearance.applyThemeMode(ThemeMode.fromTag(dataStore.observeThemeMode().first()).tag)                                     // always: the platform forgets it
+}
+```
+`data:settings` depends on `androidx.appcompat`; `domain:settings` holds `AppLanguage`, `ThemeMode`, `AppPreferences`, the repo interface and the use cases (`ObserveAppPreferences`, `SetLanguage`, `SetThemeMode`, `ApplyStoredAppearance`). Test the repo against a fake `PlatformAppearance`.
+
+### 8.2 Launch — the SplashScreen API, no in-app splash
+- `androidx.core:core-splashscreen`. `app/src/main/res/values/splash.xml` defines `Theme.App.Starting` (parent `Theme.SplashScreen.IconBackground`: the launcher foreground on its own background colour, over the surface colour, `postSplashScreenTheme = @style/Theme.App`); the manifest gives it to `MainActivity`.
+- `installSplashScreen()` **before** `super.onCreate`, then `setKeepOnScreenCondition { launchViewModel.startDestination.value == null }`.
+- `app/launch/LaunchViewModel` decides the start destination: it applies the stored appearance (in a `try/catch` — failing to apply a preference is not a reason to keep anyone on the splash), then reads the session and **waits out `SessionState.Unavailable`** (a disk hiccup is not a logout). It lives on the activity's ViewModelStore, so a recreate (a language change) does not decide again.
+- `AppNavHost(navController, startDestination)` — **no Splash route and no first-frame gate**; the NavHost is composed only once the destination is known.
+
+### 8.3 Edge to edge
+- `WindowCompat.enableEdgeToEdge(window)` in `MainActivity`, with the bar icon contrast (`isAppearanceLightStatusBars`/`…NavigationBars`) taken from the configuration's night bit — the app's, since AppCompat put it there.
+- **Never** set `statusBarColor` / `navigationBarColor` (theme or code): from targetSdk 35 they do nothing. No `SystemBars` composable.
+- Screens consume insets themselves (§7: Scaffold padding, then `consumeWindowInsets` before `imePadding`).
+
+### 8.4 Adaptive layout & orientation
+- Layouts branch on **`currentWidthClass()`** (`:core:ui`), never on device type or orientation: the same tablet is `EXPANDED` in landscape and `MEDIUM` in portrait, and split screen can make it `COMPACT`.
+- **An orientation lock is a preference, not a guarantee.** For targetSdk ≥ 36, Android 16 ignores orientation requests on screens with sw ≥ 600dp, and there is no opt-out at targetSdk 37. The kit's `MainActivity.lockOrientation()` (phones portrait, tablets landscape) therefore holds only up to Android 15 — **every tablet layout must also work in portrait (`MEDIUM`)**.
 
 ---
 
@@ -636,6 +716,7 @@ class OrdersViewModelTest {
 - Fakes record calls (`getOrdersCalls`) and, where a write-in-flight rule exists, expose a `CompletableDeferred` the fake `await`s before answering, so the test can act mid-flight.
 - Effects emitted in `init` are already in the channel; assert on what construction did, or keep `init` quiet.
 - Test names are sentences in backticks describing the rule, not the method.
+- A test class that drives the scheduler (`runCurrent`, `advanceTimeBy`, `advanceUntilIdle`) is `@OptIn(ExperimentalCoroutinesApi::class)` — the kit builds with **zero compiler warnings**, and an opt-in warning is still a warning.
 
 ### 9.3 Compose screen tests (Robolectric, JVM)
 ```kotlin

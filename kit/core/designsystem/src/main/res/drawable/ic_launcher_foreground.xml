@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Placeholder launcher foreground: a rounded tile with a dot, drawn inside the 66dp safe zone of
      the 108dp adaptive canvas. Replace with the app's own artwork (Image Asset Studio in Android
-     Studio); the adaptive icon in mipmap-anydpi-v26 is the only launcher resource (minSdk 26). -->
+     Studio); the adaptive icon in mipmap-anydpi is the only launcher resource (minSdk 26). -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
